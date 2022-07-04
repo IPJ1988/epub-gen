@@ -1,13 +1,49 @@
-class Epub {
-  options: any;
-  output: string;
+// import path from 'path';
+// import fs from 'fs';
+import Q from 'q';
+import _ from 'underscore';
+// import uslug from 'uslug';
+// import ejs from 'ejs';
+// import cheerio from 'cheerio';
+// import entities from 'entities';
 
-  constructor(options: any, output: string) {
+export interface Options {
+  title: string;
+  author: string;
+  publisher: string;
+  cover: string;
+  version: number;
+  content: {
+    title: string;
+    data: string;
+  }[];
+}
+class Epub {
+  options: Options;
+  output: string;
+  // defer = new Q.defer();
+
+  constructor(options: Options, output: string) {
     this.options = options;
     this.output = output;
-    console.log({options});
-    console.log({output});
-    console.log('Every thing is gonna be OK.');
+
+    const self = this;
+    this.options = _.extend({
+      output,
+      description: options.title,
+      publisher: "anonymous",
+      author: ["anonymous"],
+      tocTitle: "Table Of Contents",
+      appendChapterTitles: true,
+      date: new Date().toISOString(),
+      lang: "en",
+      fonts: [],
+      customOpfTemplatePath: null,
+      customNcxTocTemplatePath: null,
+      customHtmlTocTemplatePath: null,
+      version: 3
+    }, options);
+    console.log(this.options);
   }
 }
 

@@ -1,5 +1,3 @@
-const createEpub = () => {
-  console.log('Lib is OK');
-}
+import Epub from './lib';
 
-export default createEpub;
+export default Epub;

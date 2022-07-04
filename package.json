@@ -2,10 +2,11 @@
   "name": "epub-gen",
   "version": "0.1.0",
   "description": "A library to generate EPUB from HTML",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "compile": "coffee --compile --output ./ ./",
-    "test": "node test"
+    "build": "tsc",
+    "lint": "eslint . --ext .js,.ts --fix",
+    "test": "mocha -r ts-node/register src/test/**.test.ts"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,9 @@
     "url": "https://github.com/cyrilis/epub-gen/issues"
   },
   "homepage": "https://github.com/cyrilis/epub-gen",
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "archiver": "^3.0.0",
     "cheerio": "^0.22.0",

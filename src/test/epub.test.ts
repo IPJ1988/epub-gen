@@ -8,7 +8,6 @@ describe('client',  () =>  {
       author: "Lewis Carroll",
       publisher: "Macmillan & Co.",
       cover: "http://orig10.deviantart.net/e272/f/2013/255/0/0/alice_in_wonderland_book_cover_by_pannucabaguana-d6m003p.jpg", // url or path
-      version: 3,
       content: [
         {
           title: "About the author",
@@ -24,6 +23,10 @@ describe('client',  () =>  {
         }
       ]
     };
-    new epub(optionsAlice as any, path.resolve(__dirname, "./tempDir/book.epub"))
+    new epub(
+      optionsAlice as any,
+      path.resolve(__dirname, "./tempDir/book.epub"),
+      '214993fc-16be-4640-90a6-7ea5fef0c9d8'
+    )
   }).timeout(15 * 60 * 1000);
 });

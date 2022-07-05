@@ -10,15 +10,16 @@ import request from 'superagent';
 require('superagent-proxy')(request);
 import fsextra from 'fs-extra';
 const removeDiacritics = require('diacritics').remove;
-import mine from 'mime';
 import archiver from 'archiver';
-
-
+import mime from 'mime';
+import rimraf from 'rimraf';
+import { v4 as uuidv4 } from 'uuid';
 export interface OptionsInput {
   title: string;
   author: string | string[];
   publisher: string;
   cover: string;
+  version: number;
   content: {
     title: string;
     data: string;
@@ -41,8 +42,19 @@ export interface Options extends OptionsInput {
   tempDir: string;
   uuid: string;
   id: string;
-  images: string[];
+  images: Image[];
   content: any[];
+  verbose: boolean;
+  _coverMediaType: string;
+  _coverExtension: string;
+  css: Buffer;
+}
+interface Image {
+  id: string;
+  url: string;
+  dir: string;
+  mediaType: string;
+  extension: string;
 }
 class Epub {
   options: Options;
@@ -70,9 +82,18 @@ class Epub {
       fonts: [],
       customOpfTemplatePath: null,
       customNcxTocTemplatePath: null,
-      customHtmlTocTemplatePath: null
+      customHtmlTocTemplatePath: null,
+      version: 3,
     }, options);
-    this.options.docHeader = `<?xml version="1.0" encoding="utf-8"?>\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">`;
+    switch (this.options.version) {
+      case 2:
+        this.options.docHeader = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" lang="${self.options.lang}">`;
+        break;
+      case 3:
+      default:
+        this.options.docHeader = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${self.options.lang}">`;
+        break;
+    }
     if (_.isEmpty(this.options.author)) {
       this.options.author = ["anonymous"];
     }
@@ -82,9 +103,19 @@ class Epub {
     this.options.id = this.id;
     this.options.images = [];
     this.options.content = _.map(this.options.content, (content, index) => {
-      var $: any, allowedAttributes: any, allowedXhtml11Tags: any;
-      content.href = `Chapter${index}.html`;
-      content.filePath = path.resolve(self.uuid, `./OEBPS/Text/Chapter${index}.html`);
+      var $: any, allowedAttributes: string[], allowedXhtml11Tags: string[], titleSlug: string;
+      if (!content.filename) {
+        titleSlug = uslug(removeDiacritics(content.title || "no title"));
+        content.href = `${index}_${titleSlug}.xhtml`;
+        content.filePath = path.resolve(self.uuid, `./OEBPS/${index}_${titleSlug}.xhtml`);
+      } else {
+        content.href = content.filename.match(/\.xhtml$/) ? content.filename : `${content.filename}.xhtml`;
+        if (content.filename.match(/\.xhtml$/)) {
+          content.filePath = path.resolve(self.uuid, `./OEBPS/${content.filename}`);
+        } else {
+          content.filePath = path.resolve(self.uuid, `./OEBPS/${content.filename}.xhtml`);
+        }
+      }
       content.id = `item_${index}`;
       content.dir = path.dirname(content.filePath);
       content.excludeFromToc || (content.excludeFromToc = false);
@@ -104,7 +135,7 @@ class Epub {
           recognizeSelfClosing: true
         });
       }
-      $($("*").get().reverse()).each((elemIndex: any, elem: any) => {
+      $($("*").get().reverse()).each((elemIndex: number, elem: any) => {
         var attrs, child, k, ref, ref1, that, v;
         attrs = elem.attribs;
         that = this;
@@ -115,7 +146,7 @@ class Epub {
         }
         for (k in attrs) {
           v = attrs[k];
-          if (indexOf.call(allowedAttributes, k) >= 0) {
+          if (allowedAttributes.indexOf(k) >= 0) {
             if (k === "type") {
               if (that.name !== "script") {
                 $(that).removeAttr(k);
@@ -125,21 +156,32 @@ class Epub {
             $(that).removeAttr(k);
           }
         }
+        if (self.options.version === 2) {
+          if (ref1 = that.name, allowedXhtml11Tags.indexOf(ref1) >= 0) {
+
+          } else {
+            if (self.options.verbose) {
+              console.log("Warning (content[" + index + "]):", that.name, "tag isn't allowed on EPUB 2/XHTML 1.1 DTD.");
+            }
+            child = $(that).html();
+            return $(that).replaceWith($("<div>" + child + "</div>"));
+          }
+        }
       });
-      $("img").each((index: any, elem: any) => {
-        var dir, extension, id, image, mediaType, url;
+      $("img").each((index: number, elem: any) => {
+        var dir: string, extension: string, id: string, image: any, mediaType: string, url: string;
         url = $(elem).attr("src");
-        if (image = self.options.images.find(function(element) {
+        if (image = self.options.images.find((element: any) => {
           return element.url === url;
         })) {
           id = image.id;
           extension = image.extension;
         } else {
-          id = uuid();
-          mediaType = mime.getType(url.replace(/\?.*/, ""));
-          extension = mime.getExtension(mediaType);
+          id = uuidv4();
+          mediaType = mime.getType(url.replace(/\?.*/, ""))!;
+          extension = mime.getExtension(mediaType)!;
           dir = content.dir;
-          self.options.images.push({id, url, dir, mediaType, extension});
+          self.options.images.push({ id, url, dir, mediaType, extension });
         }
         return $(elem).attr("src", `images/${id}.${extension}`);
       });
@@ -147,11 +189,11 @@ class Epub {
       return content;
     });
     if (this.options.cover) {
-      this.options._coverMediaType = mime.getType(this.options.cover);
-      this.options._coverExtension = mime.getExtension(this.options._coverMediaType);
+      this.options._coverMediaType = mime.getType(this.options.cover)!;
+      this.options._coverExtension = mime.getExtension(this.options._coverMediaType)!;
     }
     this.render();
-    this.promise = this.defer.promise;
+    // this.promise = this.defer.promise;
   }
 
   render() {
@@ -171,7 +213,7 @@ class Epub {
           if (self.options.verbose) {
             console.log("Generating Epub Files...");
           }
-          return self.genEpub().then(function(result) {
+          return self.genEpub().then(function(result: any) {
             if (self.options.verbose) {
               console.log("About to finish...");
             }
@@ -179,24 +221,22 @@ class Epub {
             if (self.options.verbose) {
               return console.log("Done.");
             }
-          }, function(err) {
+          }, function(err: any) {
             return self.defer.reject(err);
           });
-        }, function(err) {
+        }, function(err: any) {
           return self.defer.reject(err);
         });
-      }, function(err) {
+      }, function(err: any) {
         return self.defer.reject(err);
       });
-    }, function(err) {
+    }, function(err: any) {
       return self.defer.reject(err);
     });
   }
 
   generateTempFile() {
-    var base, generateDefer, htmlTocPath, ncxTocPath, opfPath, self;
-    generateDefer = new Q.defer();
-    self = this;
+    var base, generateDefer = new Q.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
     if (!fs.existsSync(this.options.tempDir)) {
       fs.mkdirSync(this.options.tempDir);
     }
@@ -248,12 +288,12 @@ class Epub {
       generateDefer.reject(new Error('Custom file to HTML toc template not found.'));
       return generateDefer.promise;
     }
-    Q.all([Q.nfcall(ejs.renderFile, opfPath, self.options), Q.nfcall(ejs.renderFile, ncxTocPath, self.options), Q.nfcall(ejs.renderFile, htmlTocPath, self.options)]).spread(function(data1, data2, data3) {
+    Q.all([Q.nfcall(ejs.renderFile, opfPath, self.options), Q.nfcall(ejs.renderFile, ncxTocPath, self.options), Q.nfcall(ejs.renderFile, htmlTocPath, self.options)]).spread(function(data1: any, data2: any, data3: any) {
       fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/content.opf"), data1);
       fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
       fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
       return generateDefer.resolve();
-    }, function(err) {
+    }, function(err: any) {
       console.error(arguments);
       return generateDefer.reject(err);
     });
@@ -261,10 +301,8 @@ class Epub {
   }
 
   makeCover() {
-    var coverDefer: any, destPath, self, userAgent, writeStream;
-    self = this;
+    var coverDefer = new Q.defer(), destPath, self = this, userAgent, writeStream;
     userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
-    coverDefer = new Q.defer();
     if (this.options.cover) {
       destPath = path.resolve(this.uuid, "./OEBPS/cover." + this.options._coverExtension);
       writeStream = null;
@@ -293,14 +331,12 @@ class Epub {
     return coverDefer.promise;
   }
 
-  downloadImage(options) { //{id, url, mediaType}
-    var auxpath, downloadImageDefer, filename, requestAction, self, userAgent;
-    self = this;
+  downloadImage(options: any) { //{id, url, mediaType}
+    var auxpath, downloadImageDefer = new Q.defer(), filename: any, requestAction, self = this, userAgent;
     userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
     if (!options.url && typeof options !== "string") {
       return false;
     }
-    downloadImageDefer = new Q.defer();
     filename = path.resolve(self.uuid, "./OEBPS/images/" + options.id + "." + options.extension);
     if (options.url.indexOf("file://") === 0) {
       auxpath = options.url.substr(7);
@@ -334,9 +370,7 @@ class Epub {
   }
 
   downloadAllImage() {
-    var deferArray, imgDefer, self;
-    self = this;
-    imgDefer = new Q.defer();
+    var deferArray: any[], imgDefer = new Q.defer(), self = this;
     if (!self.options.images.length) {
       imgDefer.resolve();
     } else {
@@ -353,15 +387,13 @@ class Epub {
   }
 
   genEpub() {
-    var archive, cwd, genDefer, output, self;
+    var archive, cwd: string, genDefer = new Q.defer(), output, self = this;
     // Thanks to Paul Bradley
     // http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
     // Web Archive URL:
     // http://web.archive.org/web/20150521053611/http://www.bradleymedia.org/gzip-markdown-epub
     // or Gist:
     // https://gist.github.com/cyrilis/8d48eef37fbc108869ac32eb3ef97bca
-    genDefer = new Q.defer();
-    self = this;
     cwd = this.uuid;
     archive = archiver("zip", {
       zlib: {

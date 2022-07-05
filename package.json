@@ -43,7 +43,8 @@
     "superagent": "^3.8.3",
     "superagent-proxy": "^2.0.0",
     "underscore": "^1.9.1",
-    "uslug": "^1.0.4"
+    "uslug": "^1.0.4",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/archiver": "^5.3.1",
@@ -54,9 +55,11 @@
     "@types/fs-extra": "^9.0.13",
     "@types/mime": "^2.0.3",
     "@types/q": "^1.5.5",
+    "@types/rimraf": "^3.0.2",
     "@types/superagent": "^4.1.15",
     "@types/underscore": "^1.11.4",
     "@types/uslug": "^1.0.1",
+    "@types/uuid": "^8.3.4",
     "mocha": "^8.2.1",
     "ts-node": "^9.1.1",
     "typescript": "^3.9.9"

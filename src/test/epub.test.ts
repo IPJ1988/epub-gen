@@ -33,8 +33,4 @@ describe('client',  () =>  {
     console.log(path);
     
   }).timeout(15 * 60 * 1000);
-
-  // it('Get path', async () => {
-  //   console.log(path.resolve(__dirname, '../../tempDir/book.epub'));
-  // }).timeout(15 * 60 * 1000);
 });

@@ -388,9 +388,15 @@ class Epub {
         return genDefer.promise;
     }
     async getBuffer() {
-        const buffer = fs_1.default.readFileSync(this.options.output);
-        fs_1.default.unlinkSync(this.options.output);
-        return buffer;
+        try {
+            await this.render();
+            const buffer = fs_1.default.readFileSync(this.options.output);
+            fs_1.default.unlinkSync(this.options.output);
+            return buffer;
+        }
+        catch (error) {
+            fs_1.default.rmdirSync(this.options.uuid, { recursive: true });
+        }
     }
 }
 exports.default = Epub;

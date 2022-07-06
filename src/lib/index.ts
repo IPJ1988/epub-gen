@@ -428,9 +428,14 @@ class Epub {
   }
 
   async getBuffer () {
-    const buffer = fs.readFileSync(this.options.output);
-    fs.unlinkSync(this.options.output);
-    return buffer;
+    try {
+      await this.render();
+      const buffer = fs.readFileSync(this.options.output);
+      fs.unlinkSync(this.options.output);
+      return buffer;
+    } catch (error) {
+      fs.rmdirSync(this.options.uuid, { recursive:true });
+    }
   }
 }
 

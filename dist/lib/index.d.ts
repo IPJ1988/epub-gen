@@ -55,7 +55,7 @@ declare class Epub {
     downloadImage(options: any): any;
     downloadAllImage(): any;
     genEpub(): any;
-    getBuffer(): Promise<Buffer>;
+    getBuffer(): Promise<Buffer | undefined>;
 }
 export default Epub;
 //# sourceMappingURL=index.d.ts.map

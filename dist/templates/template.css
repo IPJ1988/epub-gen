@@ -1,0 +1,364 @@
+.epub-author {
+    color: #555;
+}
+
+.epub-link {
+    margin-bottom: 30px;
+}
+
+.epub-link a {
+    color: #666;
+    font-size: 90%;
+}
+
+.toc-author {
+    font-size: 90%;
+    color: #555;
+}
+
+.toc-link {
+    color: #999;
+    font-size: 85%;
+    display: block;
+}
+
+hr {
+    border: 0;
+    border-bottom: 1px solid #dedede;
+    margin: 60px 10%;
+}
+
+@font-face {
+    font-family: Js Jindara;
+    font-weight: normal;
+    font-style: normal;
+    src: url("../Fonts/JS_Jindara_Normal.ttf");
+}
+
+@font-face {
+    font-family: Js Jindara;
+    font-weight: bold;
+    font-style: normal;
+    src: url("../Fonts/JS_Jindara_Bold.ttf");
+}
+
+@font-face {
+    font-family: Js Jindara;
+    font-weight: normal;
+    font-style: italic;
+    src: url("../Fonts/JS_Jindara_Italic.ttf");
+}
+
+@font-face {
+    font-family: Js Jindara;
+    font-weight: bold;
+    font-style: italic;
+    src: url("../Fonts/JS_Jindara_Bold_Italic.ttf");
+}
+
+span.open {
+    font-size: 1.2em;
+}
+
+span.text-bold {
+    font-weight: bold
+}
+
+span.text-italic {
+    font-style: italic
+}
+
+span.text-underline {
+    text-decoration: underline
+}
+
+p.text-cennter {
+    text-align: center;
+    text-indent: 0px
+}
+
+p.top-space {
+    margin-top: 1.5em;
+}
+
+span.fte_note {
+    vertical-align: super;
+}
+
+span.first-text {
+    font-size: 1.6em;
+}
+
+p.copyright-ctl {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0em;
+    text-align: left;
+    text-indent: 0%;
+    font-size: 1.6em;
+}
+
+p.content {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0em;
+    text-align: justify;
+    text-indent: 8%;
+    font-size: 1.6em;
+}
+
+p.sub-chapter {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1.5em;
+    text-align: justify;
+    text-indent: 8%;
+    font-size: 1.6em;
+}
+
+p.sub-noindent {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1.5em;
+    text-align: justify;
+    text-indent: 0;
+    font-size: 1.6em;
+}
+
+p {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0em;
+    font-size: 1.6em;
+    text-indent: 8%;
+    text-align: justify;
+}
+
+p.no-indent {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0em;
+    font-size: 1.6em;
+    text-indent: 0;
+    text-align: justify;
+}
+
+.head {
+    display: block;
+    font-family: "Js Jindara";
+    font-size: 2.5em;
+    font-weight: bold;
+    line-height: 120%;
+    margin-bottom: 1.5em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1.5em;
+    text-align: center;
+    text-indent: 0;
+}
+
+.heading1 {
+    display: block;
+    font-family: "Js Jindara";
+    font-size: 2.5em;
+    font-weight: bold;
+    line-height: 120%;
+    margin-bottom: 0em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1.5em;
+    text-align: center;
+    text-indent: 0;
+}
+
+.heading2 {
+    display: block;
+    font-family: "Js Jindara";
+    font-size: 1.8em;
+    font-weight: normal;
+    line-height: 120%;
+    margin-bottom: 1.5em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0.5em;
+    text-indent: 0;
+    text-align: center;
+}
+
+body {
+    font-family: "Js Jindara";
+    margin-left: .5em;
+    margin-right: .5em;
+}
+
+.image {
+    margin-bottom: 1em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em;
+    text-indent: 0;
+    text-align: center;
+}
+
+p.footnote {
+
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0em;
+    font-size: 1.2em;
+    text-indent: 5%;
+    text-align: justify;
+}
+
+p.footnote_first {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    margin-left: 0;
+    margin-right: 0;
+    font-size: 1.2em;
+    text-indent: 5%;
+    text-align: justify;
+    margin-top: 1.5em;
+    border-top: 1px #424242 solid;
+    padding-top: 0.5em;
+}
+
+.image_border {
+    border: 2px #424242 solid;
+    height: 50%;
+
+}
+
+.image2 {
+    padding-top: 1em;
+    margin-bottom: 1em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em;
+    text-indent: 0;
+    text-align: center;
+    page-break-before: always;
+}
+
+p.booktitle {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: bold;
+    line-height: 1.2;
+    margin-bottom: 0em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0em;
+    text-align: center;
+    text-indent: 0;
+    font-size: 1.6em;
+    color: #0174DF;
+}
+
+p.bookauthor {
+    background: transparent;
+    direction: ltr;
+    display: block;
+    font-family: "Js Jindara";
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 1em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0em;
+    text-align: center;
+    text-indent: 0;
+    font-size: 1.2em;
+    color: #585858;
+}
+
+.buttonblue {
+    padding: 0.5em 1em 0.5em;
+    text-indent: 0;
+    text-align: center;
+    border: 1px solid rgb(1, 102, 158);
+    height: auto;
+    -webkit-box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+    -moz-box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+    font-size: 25px;
+    color: #FFFFFF;
+    font-weight: bold;
+    background: rgb(59, 164, 229);
+    /* Old browsers */
+    -webkit-box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+    -moz-box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ad_head {
+    display: block;
+    font-style: italic;
+    font-family: "Js Jindara";
+    font-size: 1.8em;
+    font-weight: bold;
+    line-height: 120%;
+    margin-bottom: 0.5em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0em;
+    text-align: center;
+    text-indent: 0;
+    color: rgb(59, 164, 229);
+}

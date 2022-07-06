@@ -63,6 +63,7 @@ class Epub {
   id: string;
   uuid: string;
   name: string = '';
+  promise: any;
 
   constructor(options: OptionsInput, output: string, contentUID: string) {
     this.options = options as Options;
@@ -192,8 +193,10 @@ class Epub {
       this.options._coverMediaType = mime.getType(this.options.cover)!;
       this.options._coverExtension = mime.getExtension(this.options._coverMediaType)!;
     }
+    // console.log(this.options);
+    
     this.render();
-    // this.promise = this.defer.promise;
+    this.promise = this.defer.promise;
   }
 
   render() {

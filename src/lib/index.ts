@@ -58,21 +58,19 @@ interface Image {
 }
 class Epub {
   options: Options;
-  output: string;
   defer = new Q.defer();
   id: string;
   uuid: string;
   name: string = '';
   promise: any;
 
-  constructor(options: OptionsInput, output: string, contentUID: string) {
+  constructor(options: OptionsInput, contentUID: string) {
     this.options = options as Options;
-    this.output = output;
     this.id = contentUID;
 
     const self = this;
     this.options = _.extend({
-      output,
+      output: path.resolve(__dirname, "../tempDir/book.epub"),
       description: options.title,
       publisher: "anonymous",
       author: ["anonymous"],
@@ -193,13 +191,9 @@ class Epub {
       this.options._coverMediaType = mime.getType(this.options.cover)!;
       this.options._coverExtension = mime.getExtension(this.options._coverMediaType)!;
     }
-    // console.log(this.options);
-    
-    this.render();
-    this.promise = this.defer.promise;
   }
 
-  render() {
+  async render() {
     var self = this;
     if (self.options.verbose) {
       console.log("Generating Template Files.....");
@@ -431,6 +425,12 @@ class Epub {
     });
     archive.finalize();
     return genDefer.promise;
+  }
+
+  async getBuffer () {
+    const buffer = fs.readFileSync(this.options.output);
+    fs.unlinkSync(this.options.output);
+    return buffer;
   }
 }
 

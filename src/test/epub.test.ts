@@ -24,11 +24,14 @@ describe('client',  () =>  {
         }
       ]
     };
-    new epub(
+    const Epub = new epub(
       optionsAlice as any,
-      path.resolve(__dirname, "../tempDir/book.epub"),
       '214993fc-16be-4640-90a6-7ea5fef0c9d8'
     )
+    await Epub.render();
+    const path = await Epub.getBuffer();
+    console.log(path);
+    
   }).timeout(15 * 60 * 1000);
 
   // it('Get path', async () => {

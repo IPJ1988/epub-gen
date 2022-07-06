@@ -20,15 +20,14 @@ const mime_1 = __importDefault(require("mime"));
 const rimraf_1 = __importDefault(require("rimraf"));
 const uuid_1 = require("uuid");
 class Epub {
-    constructor(options, output, contentUID) {
+    constructor(options, contentUID) {
         this.defer = new Q.defer();
         this.name = '';
         this.options = options;
-        this.output = output;
         this.id = contentUID;
         const self = this;
         this.options = underscore_1.default.extend({
-            output,
+            output: path_1.default.resolve(__dirname, "../tempDir/book.epub"),
             description: options.title,
             publisher: "anonymous",
             author: ["anonymous"],
@@ -153,11 +152,8 @@ class Epub {
             this.options._coverMediaType = mime_1.default.getType(this.options.cover);
             this.options._coverExtension = mime_1.default.getExtension(this.options._coverMediaType);
         }
-        // console.log(this.options);
-        this.render();
-        this.promise = this.defer.promise;
     }
-    render() {
+    async render() {
         var self = this;
         if (self.options.verbose) {
             console.log("Generating Template Files.....");
@@ -390,6 +386,11 @@ class Epub {
         });
         archive.finalize();
         return genDefer.promise;
+    }
+    async getBuffer() {
+        const buffer = fs_1.default.readFileSync(this.options.output);
+        fs_1.default.unlinkSync(this.options.output);
+        return buffer;
     }
 }
 exports.default = Epub;

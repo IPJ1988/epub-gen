@@ -43,19 +43,19 @@ interface Image {
 }
 declare class Epub {
     options: Options;
-    output: string;
     defer: any;
     id: string;
     uuid: string;
     name: string;
     promise: any;
-    constructor(options: OptionsInput, output: string, contentUID: string);
-    render(): any;
+    constructor(options: OptionsInput, contentUID: string);
+    render(): Promise<any>;
     generateTempFile(): any;
     makeCover(): any;
     downloadImage(options: any): any;
     downloadAllImage(): any;
     genEpub(): any;
+    getBuffer(): Promise<Buffer>;
 }
 export default Epub;
 //# sourceMappingURL=index.d.ts.map

@@ -48,7 +48,7 @@ declare class Epub {
     uuid: string;
     name: string;
     promise: any;
-    constructor(options: OptionsInput, contentUID: string);
+    constructor(options: OptionsInput, contentUID: string, output: string);
     render(): Promise<any>;
     generateTempFile(): any;
     makeCover(): any;

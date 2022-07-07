@@ -64,13 +64,13 @@ class Epub {
   name: string = '';
   promise: any;
 
-  constructor(options: OptionsInput, contentUID: string) {
+  constructor(options: OptionsInput, contentUID: string, output: string) {
     this.options = options as Options;
     this.id = contentUID;
 
     const self = this;
     this.options = _.extend({
-      output: path.resolve(__dirname, "../tempDir/book.epub"),
+      output: `${output}/book.epub`, // path.resolve(__dirname, "../tempDir/book.epub"),
       description: options.title,
       publisher: "anonymous",
       author: ["anonymous"],
@@ -96,7 +96,7 @@ class Epub {
     if (_.isEmpty(this.options.author)) {
       this.options.author = ["anonymous"];
     }
-    this.options.tempDir = path.resolve(__dirname, "../tempDir/");
+    this.options.tempDir = output; // path.resolve(__dirname, "../tempDir/");
     this.uuid = path.resolve(this.options.tempDir, this.id);
     this.options.uuid = this.uuid;
     this.options.id = this.id;

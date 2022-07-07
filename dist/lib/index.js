@@ -20,14 +20,14 @@ const mime_1 = __importDefault(require("mime"));
 const rimraf_1 = __importDefault(require("rimraf"));
 const uuid_1 = require("uuid");
 class Epub {
-    constructor(options, contentUID) {
+    constructor(options, contentUID, output) {
         this.defer = new Q.defer();
         this.name = '';
         this.options = options;
         this.id = contentUID;
         const self = this;
         this.options = underscore_1.default.extend({
-            output: path_1.default.resolve(__dirname, "../tempDir/book.epub"),
+            output: `${output}/book.epub`,
             description: options.title,
             publisher: "anonymous",
             author: ["anonymous"],
@@ -53,7 +53,7 @@ class Epub {
         if (underscore_1.default.isEmpty(this.options.author)) {
             this.options.author = ["anonymous"];
         }
-        this.options.tempDir = path_1.default.resolve(__dirname, "../tempDir/");
+        this.options.tempDir = output; // path.resolve(__dirname, "../tempDir/");
         this.uuid = path_1.default.resolve(this.options.tempDir, this.id);
         this.options.uuid = this.uuid;
         this.options.id = this.id;

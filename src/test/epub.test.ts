@@ -26,7 +26,8 @@ describe('client',  () =>  {
     };
     const Epub = new epub(
       optionsAlice as any,
-      '214993fc-16be-4640-90a6-7ea5fef0c9d8'
+      '214993fc-16be-4640-90a6-7ea5fef0c9d8',
+      '/tmp'
     )
     await Epub.render();
     const path = await Epub.getBuffer();

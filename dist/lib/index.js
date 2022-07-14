@@ -20,7 +20,7 @@ const mime_1 = __importDefault(require("mime"));
 const rimraf_1 = __importDefault(require("rimraf"));
 const uuid_1 = require("uuid");
 class Epub {
-    constructor(options, contentUID, output) {
+    constructor(options, contentUID, output, customCssBuffer) {
         this.defer = new Q.defer();
         this.name = '';
         this.options = options;
@@ -40,6 +40,7 @@ class Epub {
             customNcxTocTemplatePath: null,
             customHtmlTocTemplatePath: null,
             version: 3,
+            customCss: customCssBuffer
         }, options);
         switch (this.options.version) {
             case 2:
@@ -200,6 +201,10 @@ class Epub {
         fs_1.default.mkdirSync(path_1.default.resolve(this.uuid, "./OEBPS"));
         (base = this.options).css || (base.css = fs_1.default.readFileSync(path_1.default.resolve(__dirname, "../templates/template.css")));
         fs_1.default.writeFileSync(path_1.default.resolve(this.uuid, "./OEBPS/style.css"), this.options.css);
+        if (self.options.customCss) {
+            console.log('Create custom css');
+            fs_1.default.writeFileSync(path_1.default.resolve(this.uuid, "./OEBPS/customStyle.css"), this.options.customCss);
+        }
         if (self.options.fonts.length) {
             fs_1.default.mkdirSync(path_1.default.resolve(this.uuid, "./OEBPS/fonts"));
             this.options.fonts = underscore_1.default.map(this.options.fonts, function (font) {
@@ -215,7 +220,7 @@ class Epub {
         }
         underscore_1.default.each(this.options.content, function (content) {
             var data;
-            data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || '')}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n  </head>\n<body>`;
+            data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || '')}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n  <link rel="stylesheet" type="text/css" href="customStyle.css" />\n  </head>\n<body>`;
             data += content.title && self.options.appendChapterTitles ? `<h1>${entities.encodeXML(content.title)}</h1>` : "";
             data += content.title && content.author && content.author.length ? `<p class='epub-author'>${entities.encodeXML(content.author.join(", "))}</p>` : "";
             data += content.title && content.url ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>` : "";

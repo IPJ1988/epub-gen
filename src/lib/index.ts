@@ -48,6 +48,7 @@ export interface Options extends OptionsInput {
   _coverMediaType: string;
   _coverExtension: string;
   css: Buffer;
+  customCss?: Buffer;
 }
 interface Image {
   id: string;
@@ -64,7 +65,7 @@ class Epub {
   name: string = '';
   promise: any;
 
-  constructor(options: OptionsInput, contentUID: string, output: string) {
+  constructor(options: OptionsInput, contentUID: string, output: string, customCssBuffer?: Buffer) {
     this.options = options as Options;
     this.id = contentUID;
 
@@ -83,6 +84,7 @@ class Epub {
       customNcxTocTemplatePath: null,
       customHtmlTocTemplatePath: null,
       version: 3,
+      customCss: customCssBuffer
     }, options);
     switch (this.options.version) {
       case 2:
@@ -241,6 +243,10 @@ class Epub {
     fs.mkdirSync(path.resolve(this.uuid, "./OEBPS"));
     (base = this.options).css || (base.css = fs.readFileSync(path.resolve(__dirname, "../templates/template.css")));
     fs.writeFileSync(path.resolve(this.uuid, "./OEBPS/style.css"), this.options.css);
+    if (self.options.customCss) {
+      console.log('Create custom css');
+      fs.writeFileSync(path.resolve(this.uuid, "./OEBPS/customStyle.css"), this.options.customCss!);
+    }
     if (self.options.fonts.length) {
       fs.mkdirSync(path.resolve(this.uuid, "./OEBPS/fonts"));
       this.options.fonts = _.map(this.options.fonts, function(font) {
@@ -256,7 +262,7 @@ class Epub {
     }
     _.each(this.options.content, function(content) {
       var data;
-      data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || '')}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n  </head>\n<body>`;
+      data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || '')}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n  <link rel="stylesheet" type="text/css" href="customStyle.css" />\n  </head>\n<body>`;
       data += content.title && self.options.appendChapterTitles ? `<h1>${entities.encodeXML(content.title)}</h1>` : "";
       data += content.title && content.author && content.author.length ? `<p class='epub-author'>${entities.encodeXML(content.author.join(", "))}</p>` : "";
       data += content.title && content.url ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>` : "";

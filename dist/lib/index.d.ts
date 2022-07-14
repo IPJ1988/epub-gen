@@ -33,6 +33,7 @@ export interface Options extends OptionsInput {
     _coverMediaType: string;
     _coverExtension: string;
     css: Buffer;
+    customCss?: Buffer;
 }
 interface Image {
     id: string;
@@ -48,7 +49,7 @@ declare class Epub {
     uuid: string;
     name: string;
     promise: any;
-    constructor(options: OptionsInput, contentUID: string, output: string);
+    constructor(options: OptionsInput, contentUID: string, output: string, customCssBuffer?: Buffer);
     render(): Promise<any>;
     generateTempFile(): any;
     makeCover(): any;

@@ -74,7 +74,7 @@ class Epub {
 
     const self = this;
     this.options = _.extend({
-      output: `${output}/book.epub`, // path.resolve(__dirname, "../tempDir/book.epub"),
+      output: `${output}/${contentUID}.epub`, // path.resolve(__dirname, "../tempDir/book.epub"),
       description: options.description,
       publisher: options.publisher,
       author: options.author,

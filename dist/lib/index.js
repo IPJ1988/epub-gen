@@ -29,7 +29,7 @@ class Epub {
         this.id = contentUID;
         const self = this;
         this.options = underscore_1.default.extend({
-            output: `${output}/book.epub`,
+            output: `${output}/${contentUID}.epub`,
             description: options.description,
             publisher: options.publisher,
             author: options.author,

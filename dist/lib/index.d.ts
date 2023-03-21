@@ -6,7 +6,7 @@ export interface OptionsInput {
     cover: string;
     version: number;
     content: {
-        title: string;
+        title?: string;
         data: string;
     }[];
 }
@@ -16,20 +16,20 @@ export interface Options extends OptionsInput {
     publisher: string;
     author: string[];
     tocTitle: string;
-    appendChapterTitles: boolean;
-    date: Date;
+    appendChapterTitles?: boolean;
+    date?: Date;
     lang: string;
     fonts?: string[];
     customOpfTemplatePath?: string | undefined;
     customNcxTocTemplatePath?: string | undefined;
     customHtmlTocTemplatePath?: string | undefined;
     docHeader?: string;
-    tempDir: string;
-    uuid: string;
-    id: string;
-    images: Image[];
+    tempDir?: string;
+    uuid?: string;
+    id?: string;
+    images?: Image[];
     content: any[];
-    verbose: boolean;
+    verbose?: boolean;
     _coverMediaType: string;
     _coverExtension: string;
     css: Buffer;

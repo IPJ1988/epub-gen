@@ -131,9 +131,10 @@ class Epub {
                 }
             });
             $("img").each((index, elem) => {
+                var _a, _b;
                 var dir, extension, id, image, mediaType, url;
                 url = $(elem).attr("src");
-                if (image = self.options.images.find((element) => {
+                if (image = (_a = self.options.images) === null || _a === void 0 ? void 0 : _a.find((element) => {
                     return element.url === url;
                 })) {
                     id = image.id;
@@ -144,7 +145,7 @@ class Epub {
                     mediaType = mime_1.default.getType(url.replace(/\?.*/, ""));
                     extension = mime_1.default.getExtension(mediaType);
                     dir = content.dir;
-                    self.options.images.push({ id, url, dir, mediaType, extension });
+                    (_b = self.options.images) === null || _b === void 0 ? void 0 : _b.push({ id, url, dir, mediaType, extension });
                 }
                 return $(elem).attr("src", `images/${id}.${extension}`);
             });
@@ -337,8 +338,9 @@ class Epub {
         }
     }
     downloadAllImage() {
+        var _a;
         var deferArray, imgDefer = new Q.defer(), self = this;
-        if (!self.options.images.length) {
+        if (!((_a = self.options.images) === null || _a === void 0 ? void 0 : _a.length)) {
             imgDefer.resolve();
         }
         else {

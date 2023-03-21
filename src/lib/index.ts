@@ -23,7 +23,7 @@ export interface OptionsInput {
   cover: string;
   version: number;
   content: {
-    title: string;
+    title?: string;
     data: string;
   }[];
 }
@@ -33,20 +33,20 @@ export interface Options extends OptionsInput {
   publisher: string;
   author: string[];
   tocTitle: string;
-  appendChapterTitles: boolean;
-  date: Date;
+  appendChapterTitles?: boolean;
+  date?: Date;
   lang: string;
   fonts?: string[];
   customOpfTemplatePath?: string | undefined;
   customNcxTocTemplatePath?: string | undefined;
   customHtmlTocTemplatePath?: string | undefined;
   docHeader?: string;
-  tempDir: string;
-  uuid: string;
-  id: string;
-  images: Image[];
+  tempDir?: string;
+  uuid?: string;
+  id?: string;
+  images?: Image[];
   content: any[];
-  verbose: boolean;
+  verbose?: boolean;
   _coverMediaType: string;
   _coverExtension: string;
   css: Buffer;
@@ -175,7 +175,7 @@ class Epub {
       $("img").each((index: number, elem: any) => {
         var dir: string, extension: string, id: string, image: any, mediaType: string, url: string;
         url = $(elem).attr("src");
-        if (image = self.options.images.find((element: any) => {
+        if (image = self.options.images?.find((element: any) => {
           return element.url === url;
         })) {
           id = image.id;
@@ -185,7 +185,7 @@ class Epub {
           mediaType = mime.getType(url.replace(/\?.*/, ""))!;
           extension = mime.getExtension(mediaType)!;
           dir = content.dir;
-          self.options.images.push({ id, url, dir, mediaType, extension });
+          self.options.images?.push({ id, url, dir, mediaType, extension });
         }
         return $(elem).attr("src", `images/${id}.${extension}`);
       });
@@ -241,8 +241,8 @@ class Epub {
 
   generateTempFile() {
     var base, generateDefer = new Q.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
-    if (!fs.existsSync(this.options.tempDir)) {
-      fs.mkdirSync(this.options.tempDir);
+    if (!fs.existsSync(this.options.tempDir!)) {
+      fs.mkdirSync(this.options.tempDir!);
     }
     fs.mkdirSync(this.uuid);
     fs.mkdirSync(path.resolve(this.uuid, "./OEBPS"));
@@ -379,7 +379,7 @@ class Epub {
 
   downloadAllImage() {
     var deferArray: any[], imgDefer = new Q.defer(), self = this;
-    if (!self.options.images.length) {
+    if (!self.options.images?.length) {
       imgDefer.resolve();
     } else {
       fs.mkdirSync(path.resolve(this.uuid, "./OEBPS/images"));
@@ -408,7 +408,7 @@ class Epub {
         level: 9
       }
     });
-    output = fs.createWriteStream(self.options.output);
+    output = fs.createWriteStream(self.options.output!);
     if (self.options.verbose) {
       console.log("Zipping temp dir to", self.options.output);
     }
@@ -441,11 +441,11 @@ class Epub {
   async getBuffer () {
     try {
       await this.render();
-      const buffer = fs.readFileSync(this.options.output);
-      fs.unlinkSync(this.options.output);
+      const buffer = fs.readFileSync(this.options.output!);
+      fs.unlinkSync(this.options.output!);
       return buffer;
     } catch (error) {
-      fs.rmdirSync(this.options.uuid, { recursive:true });
+      fs.rmdirSync(this.options.uuid!, { recursive:true });
     }
   }
 }

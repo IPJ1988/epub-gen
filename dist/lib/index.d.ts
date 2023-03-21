@@ -11,7 +11,7 @@ export interface OptionsInput {
     }[];
 }
 export interface Options extends OptionsInput {
-    output: string;
+    output?: string;
     description?: string;
     publisher: string;
     author: string[];

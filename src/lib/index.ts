@@ -47,8 +47,8 @@ export interface Options extends OptionsInput {
   images?: Image[];
   content: any[];
   verbose?: boolean;
-  _coverMediaType: string;
-  _coverExtension: string;
+  _coverMediaType?: string;
+  _coverExtension?: string;
   css: Buffer;
   customCss?: Buffer;
   

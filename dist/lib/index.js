@@ -146,7 +146,7 @@ class Epub {
                 }
                 return $(elem).attr("src", `images/${id}.${extension}`);
             });
-            content.data = $.xml();
+            //content.data = $.xml();
             return content;
         });
         if (this.options.cover) {

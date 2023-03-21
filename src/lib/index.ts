@@ -14,6 +14,7 @@ import archiver from 'archiver';
 import mime from 'mime';
 import rimraf from 'rimraf';
 import { v4 as uuidv4 } from 'uuid';
+import url from 'url';
 
 export interface OptionsInput {
   title: string;
@@ -191,7 +192,9 @@ class Epub {
       return content;
     });
     if (this.options.cover) {
-      this.options._coverMediaType = mime.getType(this.options.cover)!;
+      const urlData =  url.parse(this.options.cover);
+      const coverUrl = `${urlData.protocol}//${urlData.hostname}/${urlData.pathname}`;
+      this.options._coverMediaType = mime.getType(coverUrl)!;
       this.options._coverExtension = mime.getExtension(this.options._coverMediaType)!;
     }
   }

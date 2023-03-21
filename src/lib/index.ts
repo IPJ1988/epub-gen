@@ -14,6 +14,7 @@ import archiver from 'archiver';
 import mime from 'mime';
 import rimraf from 'rimraf';
 import { v4 as uuidv4 } from 'uuid';
+
 export interface OptionsInput {
   title: string;
   author: string | string[];
@@ -186,7 +187,7 @@ class Epub {
         }
         return $(elem).attr("src", `images/${id}.${extension}`);
       });
-      content.data = $.xml();
+      //content.data = $.xml();
       return content;
     });
     if (this.options.cover) {

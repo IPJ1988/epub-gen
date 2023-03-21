@@ -19,6 +19,7 @@ const archiver_1 = __importDefault(require("archiver"));
 const mime_1 = __importDefault(require("mime"));
 const rimraf_1 = __importDefault(require("rimraf"));
 const uuid_1 = require("uuid");
+const url_1 = __importDefault(require("url"));
 class Epub {
     constructor(options, contentUID, output, customCssBuffer) {
         this.defer = new Q.defer();
@@ -150,7 +151,9 @@ class Epub {
             return content;
         });
         if (this.options.cover) {
-            this.options._coverMediaType = mime_1.default.getType(this.options.cover);
+            const urlData = url_1.default.parse(this.options.cover);
+            const coverUrl = `${urlData.protocol}//${urlData.hostname}/${urlData.pathname}`;
+            this.options._coverMediaType = mime_1.default.getType(coverUrl);
             this.options._coverExtension = mime_1.default.getExtension(this.options._coverMediaType);
         }
     }

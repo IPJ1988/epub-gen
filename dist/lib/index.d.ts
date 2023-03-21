@@ -12,18 +12,18 @@ export interface OptionsInput {
 }
 export interface Options extends OptionsInput {
     output: string;
-    description: string;
+    description?: string;
     publisher: string;
     author: string[];
     tocTitle: string;
     appendChapterTitles: boolean;
     date: Date;
     lang: string;
-    fonts: string[];
-    customOpfTemplatePath: string | undefined;
-    customNcxTocTemplatePath: string | undefined;
-    customHtmlTocTemplatePath: string | undefined;
-    docHeader: string;
+    fonts?: string[];
+    customOpfTemplatePath?: string | undefined;
+    customNcxTocTemplatePath?: string | undefined;
+    customHtmlTocTemplatePath?: string | undefined;
+    docHeader?: string;
     tempDir: string;
     uuid: string;
     id: string;
@@ -49,7 +49,7 @@ declare class Epub {
     uuid: string;
     name: string;
     promise: any;
-    constructor(options: OptionsInput, contentUID: string, output: string, customCssBuffer?: Buffer);
+    constructor(options: Options, contentUID: string, output: string);
     render(): Promise<any>;
     generateTempFile(): any;
     makeCover(): any;

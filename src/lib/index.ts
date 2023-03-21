@@ -29,18 +29,18 @@ export interface OptionsInput {
 }
 export interface Options extends OptionsInput {
   output: string;
-  description: string;
+  description?: string;
   publisher: string;
   author: string[];
   tocTitle: string;
   appendChapterTitles: boolean;
   date: Date;
   lang: string;
-  fonts: string[];
-  customOpfTemplatePath: string | undefined;
-  customNcxTocTemplatePath: string | undefined;
-  customHtmlTocTemplatePath: string | undefined;
-  docHeader: string;
+  fonts?: string[];
+  customOpfTemplatePath?: string | undefined;
+  customNcxTocTemplatePath?: string | undefined;
+  customHtmlTocTemplatePath?: string | undefined;
+  docHeader?: string;
   tempDir: string;
   uuid: string;
   id: string;
@@ -51,6 +51,7 @@ export interface Options extends OptionsInput {
   _coverExtension: string;
   css: Buffer;
   customCss?: Buffer;
+  
 }
 interface Image {
   id: string;
@@ -67,26 +68,26 @@ class Epub {
   name: string = '';
   promise: any;
 
-  constructor(options: OptionsInput, contentUID: string, output: string, customCssBuffer?: Buffer) {
+  constructor(options: Options, contentUID: string, output: string) {
     this.options = options as Options;
     this.id = contentUID;
 
     const self = this;
     this.options = _.extend({
       output: `${output}/book.epub`, // path.resolve(__dirname, "../tempDir/book.epub"),
-      description: options.title,
-      publisher: "anonymous",
-      author: ["anonymous"],
-      tocTitle: "Table Of Contents",
-      appendChapterTitles: true,
-      date: new Date().toISOString(),
-      lang: "en",
-      fonts: [],
-      customOpfTemplatePath: null,
-      customNcxTocTemplatePath: null,
-      customHtmlTocTemplatePath: null,
-      version: 3,
-      customCss: customCssBuffer
+      description: options.description,
+      publisher: options.publisher,
+      author: options.author,
+      tocTitle:options.tocTitle,
+      appendChapterTitles: options.appendChapterTitles ?? false,
+      date: options.date ?? new Date().toISOString(),
+      lang: options.lang,
+      fonts: options.fonts,
+      customOpfTemplatePath: options.customHtmlTocTemplatePath,
+      customNcxTocTemplatePath: options.customNcxTocTemplatePath,
+      customHtmlTocTemplatePath: options.customOpfTemplatePath,
+      version: options.version,
+      customCss: options.customCss,
     }, options);
     switch (this.options.version) {
       case 2:
@@ -248,12 +249,11 @@ class Epub {
     (base = this.options).css || (base.css = fs.readFileSync(path.resolve(__dirname, "../templates/template.css")));
     fs.writeFileSync(path.resolve(this.uuid, "./OEBPS/style.css"), this.options.css);
     if (self.options.customCss) {
-      console.log('Create custom css');
       fs.writeFileSync(path.resolve(this.uuid, "./OEBPS/customStyle.css"), this.options.customCss!);
     }
-    if (self.options.fonts.length) {
+    if (self.options.fonts && self.options.fonts.length>0) {
       fs.mkdirSync(path.resolve(this.uuid, "./OEBPS/fonts"));
-      this.options.fonts = _.map(this.options.fonts, function(font) {
+      this.options.fonts = _.map(this.options.fonts ?? [], function(font) {
         var filename;
         if (!fs.existsSync(font)) {
           generateDefer.reject(new Error('Custom font not found at ' + font + '.'));
@@ -266,7 +266,8 @@ class Epub {
     }
     _.each(this.options.content, function(content) {
       var data;
-      data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || '')}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n  <link rel="stylesheet" type="text/css" href="customStyle.css" />\n  </head>\n<body>`;
+      data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || '')}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
+      ${self.options.customCss ? '<link rel="stylesheet" type="text/css" href="customStyle.css" />\n':''}</head>\n<body>`;
       data += content.title && self.options.appendChapterTitles ? `<h1>${entities.encodeXML(content.title)}</h1>` : "";
       data += content.title && content.author && content.author.length ? `<p class='epub-author'>${entities.encodeXML(content.author.join(", "))}</p>` : "";
       data += content.title && content.url ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>` : "";

@@ -40,7 +40,11 @@
         <item id="css" href="style.css" media-type="text/css" />
 
         <% if(locals.cover) { %>
-        <item id="image_cover" href="cover.<%= _coverExtension %>" media-type="<%= _coverMediaType %>" />
+            <item id="image_cover" href="cover.<%= _coverExtension %>" media-type="<%= _coverMediaType %>" />
+            <% } %>
+
+        <% if(customCss) { %>
+            <item id="css" href="customStyle.css" media-type="text/css" />
         <% } %>
         
         <% images.forEach(function(image, index){ %>

@@ -304,6 +304,10 @@ class Epub {
         if (!options.url && typeof options !== "string") {
             return false;
         }
+        if (!options.url.match(/^http/i)) {
+            console.log('match');
+            return false;
+        }
         filename = path_1.default.resolve(self.uuid, "./OEBPS/images/" + options.id + "." + options.extension);
         if (options.url.indexOf("file://") === 0) {
             auxpath = options.url.substr(7);

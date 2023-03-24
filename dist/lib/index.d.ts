@@ -1,14 +1,21 @@
 /// <reference types="node" />
+export interface EpubContent {
+    title?: string;
+    data: string;
+    beforeToc?: boolean;
+    filename?: string;
+    href?: string;
+    filePath?: string;
+    excludeFromToc?: boolean;
+    author?: string;
+}
 export interface OptionsInput {
     title: string;
     author: string | string[];
     publisher: string;
     cover: string;
     version: number;
-    content: {
-        title?: string;
-        data: string;
-    }[];
+    content: EpubContent[];
 }
 export interface Options extends OptionsInput {
     output?: string;

@@ -5,37 +5,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
-const Q = require('q');
+const promises_1 = __importDefault(require("fs/promises"));
+const Q = require("q");
 const underscore_1 = __importDefault(require("underscore"));
 const uslug_1 = __importDefault(require("uslug"));
 const ejs_1 = __importDefault(require("ejs"));
 const cheerio_1 = __importDefault(require("cheerio"));
-const entities = require('entities');
+const entities = require("entities");
 const superagent_1 = __importDefault(require("superagent"));
-require('superagent-proxy')(superagent_1.default);
+require("superagent-proxy")(superagent_1.default);
 const fs_extra_1 = __importDefault(require("fs-extra"));
-const removeDiacritics = require('diacritics').remove;
+const removeDiacritics = require("diacritics").remove;
 const archiver_1 = __importDefault(require("archiver"));
 const mime_1 = __importDefault(require("mime"));
-const rimraf_1 = __importDefault(require("rimraf"));
 const uuid_1 = require("uuid");
 const url_1 = __importDefault(require("url"));
 class Epub {
     constructor(options, contentUID, output) {
-        var _a, _b;
         this.defer = new Q.defer();
-        this.name = '';
+        this.name = "";
         this.options = options;
         this.id = contentUID;
         const self = this;
         this.options = underscore_1.default.extend({
-            output: `${output}/${contentUID}.epub`,
+            output: `${output}/${contentUID}.epub`, // path.resolve(__dirname, "../tempDir/book.epub"),
             description: options.description,
             publisher: options.publisher,
             author: options.author,
             tocTitle: options.tocTitle,
-            appendChapterTitles: (_a = options.appendChapterTitles) !== null && _a !== void 0 ? _a : false,
-            date: (_b = options.date) !== null && _b !== void 0 ? _b : new Date().toISOString(),
+            appendChapterTitles: options.appendChapterTitles ?? false,
+            date: options.date ?? new Date().toISOString(),
             lang: options.lang,
             fonts: options.fonts,
             customOpfTemplatePath: options.customHtmlTocTemplatePath,
@@ -64,12 +63,14 @@ class Epub {
         this.options.content = underscore_1.default.map(this.options.content, (content, index) => {
             var $, allowedAttributes, allowedXhtml11Tags, titleSlug;
             if (!content.filename) {
-                titleSlug = uslug_1.default(removeDiacritics(content.title || "no title"));
+                titleSlug = (0, uslug_1.default)(removeDiacritics(content.title || "no title"));
                 content.href = `${index}_${titleSlug}.xhtml`;
                 content.filePath = path_1.default.resolve(self.uuid, `./OEBPS/${index}_${titleSlug}.xhtml`);
             }
             else {
-                content.href = content.filename.match(/\.xhtml$/) ? content.filename : `${content.filename}.xhtml`;
+                content.href = content.filename.match(/\.xhtml$/)
+                    ? content.filename
+                    : `${content.filename}.xhtml`;
                 if (content.filename.match(/\.xhtml$/)) {
                     content.filePath = path_1.default.resolve(self.uuid, `./OEBPS/${content.filename}`);
                 }
@@ -82,18 +83,237 @@ class Epub {
             content.excludeFromToc || (content.excludeFromToc = false);
             content.beforeToc || (content.beforeToc = false);
             //fix Author Array
-            content.author = content.author && underscore_1.default.isString(content.author) ? [content.author] : !content.author || !underscore_1.default.isArray(content.author) ? [] : content.author;
-            allowedAttributes = ["content", "alt", "id", "title", "src", "href", "about", "accesskey", "aria-activedescendant", "aria-atomic", "aria-autocomplete", "aria-busy", "aria-checked", "aria-controls", "aria-describedat", "aria-describedby", "aria-disabled", "aria-dropeffect", "aria-expanded", "aria-flowto", "aria-grabbed", "aria-haspopup", "aria-hidden", "aria-invalid", "aria-label", "aria-labelledby", "aria-level", "aria-live", "aria-multiline", "aria-multiselectable", "aria-orientation", "aria-owns", "aria-posinset", "aria-pressed", "aria-readonly", "aria-relevant", "aria-required", "aria-selected", "aria-setsize", "aria-sort", "aria-valuemax", "aria-valuemin", "aria-valuenow", "aria-valuetext", "class", "content", "contenteditable", "contextmenu", "datatype", "dir", "draggable", "dropzone", "hidden", "hreflang", "id", "inlist", "itemid", "itemref", "itemscope", "itemtype", "lang", "media", "ns1:type", "ns2:alphabet", "ns2:ph", "onabort", "onblur", "oncanplay", "oncanplaythrough", "onchange", "onclick", "oncontextmenu", "ondblclick", "ondrag", "ondragend", "ondragenter", "ondragleave", "ondragover", "ondragstart", "ondrop", "ondurationchange", "onemptied", "onended", "onerror", "onfocus", "oninput", "oninvalid", "onkeydown", "onkeypress", "onkeyup", "onload", "onloadeddata", "onloadedmetadata", "onloadstart", "onmousedown", "onmousemove", "onmouseout", "onmouseover", "onmouseup", "onmousewheel", "onpause", "onplay", "onplaying", "onprogress", "onratechange", "onreadystatechange", "onreset", "onscroll", "onseeked", "onseeking", "onselect", "onshow", "onstalled", "onsubmit", "onsuspend", "ontimeupdate", "onvolumechange", "onwaiting", "prefix", "property", "rel", "resource", "rev", "role", "spellcheck", "style", "tabindex", "target", "title", "type", "typeof", "vocab", "xml:base", "xml:lang", "xml:space", "colspan", "rowspan", "epub:type", "epub:prefix"];
-            allowedXhtml11Tags = ["div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "dl", "dt", "dd", "address", "hr", "pre", "blockquote", "center", "ins", "del", "a", "span", "bdo", "br", "em", "strong", "dfn", "code", "samp", "kbd", "bar", "cite", "abbr", "acronym", "q", "sub", "sup", "tt", "i", "b", "big", "small", "u", "s", "strike", "basefont", "font", "object", "param", "img", "table", "caption", "colgroup", "col", "thead", "tfoot", "tbody", "tr", "th", "td", "embed", "applet", "iframe", "img", "map", "noscript", "ns:svg", "object", "script", "table", "tt", "var"];
+            content.author =
+                content.author && underscore_1.default.isString(content.author)
+                    ? [content.author]
+                    : !content.author || !underscore_1.default.isArray(content.author)
+                        ? []
+                        : content.author;
+            allowedAttributes = [
+                "content",
+                "alt",
+                "id",
+                "title",
+                "src",
+                "href",
+                "about",
+                "accesskey",
+                "aria-activedescendant",
+                "aria-atomic",
+                "aria-autocomplete",
+                "aria-busy",
+                "aria-checked",
+                "aria-controls",
+                "aria-describedat",
+                "aria-describedby",
+                "aria-disabled",
+                "aria-dropeffect",
+                "aria-expanded",
+                "aria-flowto",
+                "aria-grabbed",
+                "aria-haspopup",
+                "aria-hidden",
+                "aria-invalid",
+                "aria-label",
+                "aria-labelledby",
+                "aria-level",
+                "aria-live",
+                "aria-multiline",
+                "aria-multiselectable",
+                "aria-orientation",
+                "aria-owns",
+                "aria-posinset",
+                "aria-pressed",
+                "aria-readonly",
+                "aria-relevant",
+                "aria-required",
+                "aria-selected",
+                "aria-setsize",
+                "aria-sort",
+                "aria-valuemax",
+                "aria-valuemin",
+                "aria-valuenow",
+                "aria-valuetext",
+                "class",
+                "content",
+                "contenteditable",
+                "contextmenu",
+                "datatype",
+                "dir",
+                "draggable",
+                "dropzone",
+                "hidden",
+                "hreflang",
+                "id",
+                "inlist",
+                "itemid",
+                "itemref",
+                "itemscope",
+                "itemtype",
+                "lang",
+                "media",
+                "ns1:type",
+                "ns2:alphabet",
+                "ns2:ph",
+                "onabort",
+                "onblur",
+                "oncanplay",
+                "oncanplaythrough",
+                "onchange",
+                "onclick",
+                "oncontextmenu",
+                "ondblclick",
+                "ondrag",
+                "ondragend",
+                "ondragenter",
+                "ondragleave",
+                "ondragover",
+                "ondragstart",
+                "ondrop",
+                "ondurationchange",
+                "onemptied",
+                "onended",
+                "onerror",
+                "onfocus",
+                "oninput",
+                "oninvalid",
+                "onkeydown",
+                "onkeypress",
+                "onkeyup",
+                "onload",
+                "onloadeddata",
+                "onloadedmetadata",
+                "onloadstart",
+                "onmousedown",
+                "onmousemove",
+                "onmouseout",
+                "onmouseover",
+                "onmouseup",
+                "onmousewheel",
+                "onpause",
+                "onplay",
+                "onplaying",
+                "onprogress",
+                "onratechange",
+                "onreadystatechange",
+                "onreset",
+                "onscroll",
+                "onseeked",
+                "onseeking",
+                "onselect",
+                "onshow",
+                "onstalled",
+                "onsubmit",
+                "onsuspend",
+                "ontimeupdate",
+                "onvolumechange",
+                "onwaiting",
+                "prefix",
+                "property",
+                "rel",
+                "resource",
+                "rev",
+                "role",
+                "spellcheck",
+                "style",
+                "tabindex",
+                "target",
+                "title",
+                "type",
+                "typeof",
+                "vocab",
+                "xml:base",
+                "xml:lang",
+                "xml:space",
+                "colspan",
+                "rowspan",
+                "epub:type",
+                "epub:prefix",
+            ];
+            allowedXhtml11Tags = [
+                "div",
+                "p",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "ul",
+                "ol",
+                "li",
+                "dl",
+                "dt",
+                "dd",
+                "address",
+                "hr",
+                "pre",
+                "blockquote",
+                "center",
+                "ins",
+                "del",
+                "a",
+                "span",
+                "bdo",
+                "br",
+                "em",
+                "strong",
+                "dfn",
+                "code",
+                "samp",
+                "kbd",
+                "bar",
+                "cite",
+                "abbr",
+                "acronym",
+                "q",
+                "sub",
+                "sup",
+                "tt",
+                "i",
+                "b",
+                "big",
+                "small",
+                "u",
+                "s",
+                "strike",
+                "basefont",
+                "font",
+                "object",
+                "param",
+                "img",
+                "table",
+                "caption",
+                "colgroup",
+                "col",
+                "thead",
+                "tfoot",
+                "tbody",
+                "tr",
+                "th",
+                "td",
+                "embed",
+                "applet",
+                "iframe",
+                "img",
+                "map",
+                "noscript",
+                "ns:svg",
+                "object",
+                "script",
+                "table",
+                "tt",
+                "var",
+            ];
             $ = cheerio_1.default.load(content.data, {
                 lowerCaseTags: true,
-                recognizeSelfClosing: true
+                recognizeSelfClosing: true,
             });
             // Only body innerHTML is allowed
             if ($("body").length) {
                 $ = cheerio_1.default.load($("body").html(), {
                     lowerCaseTags: true,
-                    recognizeSelfClosing: true
+                    recognizeSelfClosing: true,
                 });
             }
             $($("*").get().reverse()).each((elemIndex, elem) => {
@@ -119,7 +339,7 @@ class Epub {
                     }
                 }
                 if (self.options.version === 2) {
-                    if (ref1 = that.name, allowedXhtml11Tags.indexOf(ref1) >= 0) {
+                    if (((ref1 = that.name), allowedXhtml11Tags.indexOf(ref1) >= 0)) {
                     }
                     else {
                         if (self.options.verbose) {
@@ -131,21 +351,20 @@ class Epub {
                 }
             });
             $("img").each((index, elem) => {
-                var _a, _b;
                 var dir, extension, id, image, mediaType, url;
                 url = $(elem).attr("src");
-                if (image = (_a = self.options.images) === null || _a === void 0 ? void 0 : _a.find((element) => {
+                if ((image = self.options.images?.find((element) => {
                     return element.url === url;
-                })) {
+                }))) {
                     id = image.id;
                     extension = image.extension;
                 }
                 else {
-                    id = uuid_1.v4();
+                    id = (0, uuid_1.v4)();
                     mediaType = mime_1.default.getType(url.replace(/\?.*/, ""));
                     extension = mime_1.default.getExtension(mediaType);
                     dir = content.dir;
-                    (_b = self.options.images) === null || _b === void 0 ? void 0 : _b.push({ id, url, dir, mediaType, extension });
+                    self.options.images?.push({ id, url, dir, mediaType, extension });
                 }
                 return $(elem).attr("src", `images/${id}.${extension}`);
             });
@@ -198,24 +417,24 @@ class Epub {
         });
     }
     generateTempFile() {
-        var _a;
         var base, generateDefer = new Q.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
         if (!fs_1.default.existsSync(this.options.tempDir)) {
             fs_1.default.mkdirSync(this.options.tempDir);
         }
         fs_1.default.mkdirSync(this.uuid);
         fs_1.default.mkdirSync(path_1.default.resolve(this.uuid, "./OEBPS"));
-        (base = this.options).css || (base.css = fs_1.default.readFileSync(path_1.default.resolve(__dirname, "../templates/template.css")));
+        (base = this.options).css ||
+            (base.css = fs_1.default.readFileSync(path_1.default.resolve(__dirname, "../templates/template.css")));
         fs_1.default.writeFileSync(path_1.default.resolve(this.uuid, "./OEBPS/style.css"), this.options.css);
         if (self.options.customCss) {
             fs_1.default.writeFileSync(path_1.default.resolve(this.uuid, "./OEBPS/customStyle.css"), this.options.customCss);
         }
         if (self.options.fonts && self.options.fonts.length > 0) {
             fs_1.default.mkdirSync(path_1.default.resolve(this.uuid, "./OEBPS/fonts"));
-            this.options.fonts = underscore_1.default.map((_a = this.options.fonts) !== null && _a !== void 0 ? _a : [], function (font) {
+            this.options.fonts = underscore_1.default.map(this.options.fonts ?? [], function (font) {
                 var filename;
                 if (!fs_1.default.existsSync(font)) {
-                    generateDefer.reject(new Error('Custom font not found at ' + font + '.'));
+                    generateDefer.reject(new Error("Custom font not found at " + font + "."));
                     return generateDefer.promise;
                 }
                 filename = path_1.default.basename(font);
@@ -225,37 +444,58 @@ class Epub {
         }
         underscore_1.default.each(this.options.content, function (content) {
             var data;
-            data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || '')}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
-      ${self.options.customCss ? '<link rel="stylesheet" type="text/css" href="customStyle.css" />\n' : ''}</head>\n<body>`;
-            data += content.title && self.options.appendChapterTitles ? `<h1>${entities.encodeXML(content.title)}</h1>` : "";
-            data += content.title && content.author && content.author.length ? `<p class='epub-author'>${entities.encodeXML(content.author.join(", "))}</p>` : "";
-            data += content.title && content.url ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>` : "";
+            data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
+      ${self.options.customCss
+                ? '<link rel="stylesheet" type="text/css" href="customStyle.css" />\n'
+                : ""}</head>\n<body>`;
+            data +=
+                content.title && self.options.appendChapterTitles
+                    ? `<h1>${entities.encodeXML(content.title)}</h1>`
+                    : "";
+            data +=
+                content.title && content.author && content.author.length
+                    ? `<p class='epub-author'>${entities.encodeXML(content.author.join(", "))}</p>`
+                    : "";
+            data +=
+                content.title && content.url
+                    ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>`
+                    : "";
             data += `${content.data}</body></html>`;
             return fs_1.default.writeFileSync(content.filePath, data);
         });
         // write meta-inf/container.xml
         fs_1.default.mkdirSync(this.uuid + "/META-INF");
-        fs_1.default.writeFileSync(`${this.uuid}/META-INF/container.xml`, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>");
+        fs_1.default.writeFileSync(`${this.uuid}/META-INF/container.xml`, '<?xml version="1.0" encoding="UTF-8" ?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>');
         if (self.options.version === 2) {
             // write meta-inf/com.apple.ibooks.display-options.xml [from pedrosanta:xhtml#6]
-            fs_1.default.writeFileSync(`${this.uuid}/META-INF/com.apple.ibooks.display-options.xml`, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<display_options>\n  <platform name=\"*\">\n    <option name=\"specified-fonts\">true</option>\n  </platform>\n</display_options>");
+            fs_1.default.writeFileSync(`${this.uuid}/META-INF/com.apple.ibooks.display-options.xml`, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<display_options>\n  <platform name="*">\n    <option name="specified-fonts">true</option>\n  </platform>\n</display_options>');
         }
-        opfPath = self.options.customOpfTemplatePath || path_1.default.resolve(__dirname, `../templates/epub${self.options.version}/content.opf.ejs`);
+        opfPath =
+            self.options.customOpfTemplatePath ||
+                path_1.default.resolve(__dirname, `../templates/epub${self.options.version}/content.opf.ejs`);
         if (!fs_1.default.existsSync(opfPath)) {
-            generateDefer.reject(new Error('Custom file to OPF template not found.'));
+            generateDefer.reject(new Error("Custom file to OPF template not found."));
             return generateDefer.promise;
         }
-        ncxTocPath = self.options.customNcxTocTemplatePath || path_1.default.resolve(__dirname, "../templates/toc.ncx.ejs");
+        ncxTocPath =
+            self.options.customNcxTocTemplatePath ||
+                path_1.default.resolve(__dirname, "../templates/toc.ncx.ejs");
         if (!fs_1.default.existsSync(ncxTocPath)) {
-            generateDefer.reject(new Error('Custom file the NCX toc template not found.'));
+            generateDefer.reject(new Error("Custom file the NCX toc template not found."));
             return generateDefer.promise;
         }
-        htmlTocPath = self.options.customHtmlTocTemplatePath || path_1.default.resolve(__dirname, `../templates/epub${self.options.version}/toc.xhtml.ejs`);
+        htmlTocPath =
+            self.options.customHtmlTocTemplatePath ||
+                path_1.default.resolve(__dirname, `../templates/epub${self.options.version}/toc.xhtml.ejs`);
         if (!fs_1.default.existsSync(htmlTocPath)) {
-            generateDefer.reject(new Error('Custom file to HTML toc template not found.'));
+            generateDefer.reject(new Error("Custom file to HTML toc template not found."));
             return generateDefer.promise;
         }
-        Q.all([Q.nfcall(ejs_1.default.renderFile, opfPath, self.options), Q.nfcall(ejs_1.default.renderFile, ncxTocPath, self.options), Q.nfcall(ejs_1.default.renderFile, htmlTocPath, self.options)]).spread(function (data1, data2, data3) {
+        Q.all([
+            Q.nfcall(ejs_1.default.renderFile, opfPath, self.options),
+            Q.nfcall(ejs_1.default.renderFile, ncxTocPath, self.options),
+            Q.nfcall(ejs_1.default.renderFile, htmlTocPath, self.options),
+        ]).spread(function (data1, data2, data3) {
             fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/content.opf"), data1);
             fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
             fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
@@ -268,13 +508,14 @@ class Epub {
     }
     makeCover() {
         var coverDefer = new Q.defer(), destPath, self = this, userAgent, writeStream;
-        userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
+        userAgent =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
         if (this.options.cover) {
             destPath = path_1.default.resolve(this.uuid, "./OEBPS/cover." + this.options._coverExtension);
             writeStream = null;
             if (this.options.cover.slice(0, 4) === "http") {
                 writeStream = superagent_1.default.get(this.options.cover).set({
-                    'User-Agent': userAgent
+                    "User-Agent": userAgent,
                 });
                 writeStream.pipe(fs_1.default.createWriteStream(destPath));
             }
@@ -282,6 +523,7 @@ class Epub {
                 writeStream = fs_1.default.createReadStream(this.options.cover);
                 writeStream.pipe(fs_1.default.createWriteStream(destPath));
             }
+            // writeStream.on("end",)
             writeStream.on("end", function () {
                 if (self.options.verbose) {
                     console.log("[Success] cover image downloaded successfully!");
@@ -299,8 +541,10 @@ class Epub {
         return coverDefer.promise;
     }
     downloadImage(options) {
+        //{id, url, mediaType}
         var auxpath, downloadImageDefer = new Q.defer(), filename, requestAction, self = this, userAgent;
-        userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
+        userAgent =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
         if (!options.url && typeof options !== "string") {
             return false;
         }
@@ -316,7 +560,7 @@ class Epub {
         else {
             if (options.url.indexOf("http") === 0) {
                 requestAction = superagent_1.default.get(options.url).set({
-                    'User-Agent': userAgent
+                    "User-Agent": userAgent,
                 });
                 requestAction.pipe(fs_1.default.createWriteStream(filename));
             }
@@ -324,14 +568,14 @@ class Epub {
                 requestAction = fs_1.default.createReadStream(path_1.default.resolve(options.dir, options.url));
                 requestAction.pipe(fs_1.default.createWriteStream(filename));
             }
-            requestAction.on('error', function (err) {
+            requestAction.on("error", function (err) {
                 if (self.options.verbose) {
-                    console.error('[Download Error]', 'Error while downloading', options.url, err);
+                    console.error("[Download Error]", "Error while downloading", options.url, err);
                 }
                 fs_1.default.unlinkSync(filename);
                 return downloadImageDefer.reject(err);
             });
-            requestAction.on('end', function () {
+            requestAction.on("end", function () {
                 if (self.options.verbose) {
                     console.log("[Download Success]", options.url);
                 }
@@ -341,9 +585,8 @@ class Epub {
         }
     }
     downloadAllImage() {
-        var _a;
         var deferArray, imgDefer = new Q.defer(), self = this;
-        if (!((_a = self.options.images) === null || _a === void 0 ? void 0 : _a.length)) {
+        if (!self.options.images?.length) {
             imgDefer.resolve();
         }
         else {
@@ -367,10 +610,10 @@ class Epub {
         // or Gist:
         // https://gist.github.com/cyrilis/8d48eef37fbc108869ac32eb3ef97bca
         cwd = this.uuid;
-        archive = archiver_1.default("zip", {
+        archive = (0, archiver_1.default)("zip", {
             zlib: {
-                level: 9
-            }
+                level: 9,
+            },
         });
         output = fs_1.default.createWriteStream(self.options.output);
         if (self.options.verbose) {
@@ -378,23 +621,16 @@ class Epub {
         }
         archive.append("application/epub+zip", {
             store: true,
-            name: "mimetype"
+            name: "mimetype",
         });
         archive.directory(cwd + "/META-INF", "META-INF");
         archive.directory(cwd + "/OEBPS", "OEBPS");
         archive.pipe(output);
-        archive.on("end", function () {
+        archive.on("end", async function () {
             if (self.options.verbose) {
                 console.log("Done zipping, clearing temp dir...");
             }
-            return rimraf_1.default(cwd, function (err) {
-                if (err) {
-                    return genDefer.reject(err);
-                }
-                else {
-                    return genDefer.resolve();
-                }
-            });
+            return await promises_1.default.rm(cwd, { recursive: true, force: true });
         });
         archive.on("error", function (err) {
             return genDefer.reject(err);

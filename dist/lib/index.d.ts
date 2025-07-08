@@ -1,4 +1,3 @@
-/// <reference types="node" />
 export interface EpubContent {
     title?: string;
     data: string;
@@ -63,7 +62,7 @@ declare class Epub {
     downloadImage(options: any): any;
     downloadAllImage(): any;
     genEpub(): any;
-    getBuffer(): Promise<Buffer | undefined>;
+    getBuffer(): Promise<NonSharedBuffer | undefined>;
 }
 export default Epub;
 //# sourceMappingURL=index.d.ts.map

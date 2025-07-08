@@ -1,30 +1,31 @@
-import path from 'path';
-import fs from 'fs';
-const Q = require('q');
-import _ from 'underscore';
-import uslug from 'uslug';
-import ejs from 'ejs';
-import cheerio from 'cheerio';
-const entities = require('entities');
-import request from 'superagent';
-require('superagent-proxy')(request);
-import fsextra from 'fs-extra';
-const removeDiacritics = require('diacritics').remove;
-import archiver from 'archiver';
-import mime from 'mime';
-import rimraf from 'rimraf';
-import { v4 as uuidv4 } from 'uuid';
-import url from 'url';
+import path from "path";
+import fs from "fs";
+import fsPromise from "fs/promises";
+const Q = require("q");
+import _ from "underscore";
+import uslug from "uslug";
+import ejs from "ejs";
+import cheerio from "cheerio";
+const entities = require("entities");
+import request from "superagent";
+require("superagent-proxy")(request);
+import fsextra from "fs-extra";
+const removeDiacritics = require("diacritics").remove;
+import archiver from "archiver";
+import mime from "mime";
+import rimraf from "rimraf";
+import { v4 as uuidv4 } from "uuid";
+import url from "url";
 
 export interface EpubContent {
   title?: string;
   data: string;
-  beforeToc?:boolean;
-  filename?:string;
-  href?:string;
-  filePath?:string;
-  excludeFromToc?:boolean;
-  author?:string
+  beforeToc?: boolean;
+  filename?: string;
+  href?: string;
+  filePath?: string;
+  excludeFromToc?: boolean;
+  author?: string;
 }
 export interface OptionsInput {
   title: string;
@@ -58,7 +59,6 @@ export interface Options extends OptionsInput {
   _coverExtension?: string;
   css: Buffer;
   customCss?: Buffer;
-  
 }
 interface Image {
   id: string;
@@ -72,7 +72,7 @@ class Epub {
   defer = new Q.defer();
   id: string;
   uuid: string;
-  name: string = '';
+  name: string = "";
   promise: any;
 
   constructor(options: Options, contentUID: string, output: string) {
@@ -80,22 +80,25 @@ class Epub {
     this.id = contentUID;
 
     const self = this;
-    this.options = _.extend({
-      output: `${output}/${contentUID}.epub`, // path.resolve(__dirname, "../tempDir/book.epub"),
-      description: options.description,
-      publisher: options.publisher,
-      author: options.author,
-      tocTitle:options.tocTitle,
-      appendChapterTitles: options.appendChapterTitles ?? false,
-      date: options.date ?? new Date().toISOString(),
-      lang: options.lang,
-      fonts: options.fonts,
-      customOpfTemplatePath: options.customHtmlTocTemplatePath,
-      customNcxTocTemplatePath: options.customNcxTocTemplatePath,
-      customHtmlTocTemplatePath: options.customOpfTemplatePath,
-      version: options.version,
-      customCss: options.customCss,
-    }, options);
+    this.options = _.extend(
+      {
+        output: `${output}/${contentUID}.epub`, // path.resolve(__dirname, "../tempDir/book.epub"),
+        description: options.description,
+        publisher: options.publisher,
+        author: options.author,
+        tocTitle: options.tocTitle,
+        appendChapterTitles: options.appendChapterTitles ?? false,
+        date: options.date ?? new Date().toISOString(),
+        lang: options.lang,
+        fonts: options.fonts,
+        customOpfTemplatePath: options.customHtmlTocTemplatePath,
+        customNcxTocTemplatePath: options.customNcxTocTemplatePath,
+        customHtmlTocTemplatePath: options.customOpfTemplatePath,
+        version: options.version,
+        customCss: options.customCss,
+      },
+      options
+    );
     switch (this.options.version) {
       case 2:
         this.options.docHeader = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" lang="${self.options.lang}">`;
@@ -114,17 +117,31 @@ class Epub {
     this.options.id = this.id;
     this.options.images = [];
     this.options.content = _.map(this.options.content, (content, index) => {
-      var $: any, allowedAttributes: string[], allowedXhtml11Tags: string[], titleSlug: string;
+      var $: any,
+        allowedAttributes: string[],
+        allowedXhtml11Tags: string[],
+        titleSlug: string;
       if (!content.filename) {
         titleSlug = uslug(removeDiacritics(content.title || "no title"));
         content.href = `${index}_${titleSlug}.xhtml`;
-        content.filePath = path.resolve(self.uuid, `./OEBPS/${index}_${titleSlug}.xhtml`);
+        content.filePath = path.resolve(
+          self.uuid,
+          `./OEBPS/${index}_${titleSlug}.xhtml`
+        );
       } else {
-        content.href = content.filename.match(/\.xhtml$/) ? content.filename : `${content.filename}.xhtml`;
+        content.href = content.filename.match(/\.xhtml$/)
+          ? content.filename
+          : `${content.filename}.xhtml`;
         if (content.filename.match(/\.xhtml$/)) {
-          content.filePath = path.resolve(self.uuid, `./OEBPS/${content.filename}`);
+          content.filePath = path.resolve(
+            self.uuid,
+            `./OEBPS/${content.filename}`
+          );
         } else {
-          content.filePath = path.resolve(self.uuid, `./OEBPS/${content.filename}.xhtml`);
+          content.filePath = path.resolve(
+            self.uuid,
+            `./OEBPS/${content.filename}.xhtml`
+          );
         }
       }
       content.id = `item_${index}`;
@@ -132,18 +149,237 @@ class Epub {
       content.excludeFromToc || (content.excludeFromToc = false);
       content.beforeToc || (content.beforeToc = false);
       //fix Author Array
-      content.author = content.author && _.isString(content.author) ? [content.author] : !content.author || !_.isArray(content.author) ? [] : content.author;
-      allowedAttributes = ["content", "alt", "id", "title", "src", "href", "about", "accesskey", "aria-activedescendant", "aria-atomic", "aria-autocomplete", "aria-busy", "aria-checked", "aria-controls", "aria-describedat", "aria-describedby", "aria-disabled", "aria-dropeffect", "aria-expanded", "aria-flowto", "aria-grabbed", "aria-haspopup", "aria-hidden", "aria-invalid", "aria-label", "aria-labelledby", "aria-level", "aria-live", "aria-multiline", "aria-multiselectable", "aria-orientation", "aria-owns", "aria-posinset", "aria-pressed", "aria-readonly", "aria-relevant", "aria-required", "aria-selected", "aria-setsize", "aria-sort", "aria-valuemax", "aria-valuemin", "aria-valuenow", "aria-valuetext", "class", "content", "contenteditable", "contextmenu", "datatype", "dir", "draggable", "dropzone", "hidden", "hreflang", "id", "inlist", "itemid", "itemref", "itemscope", "itemtype", "lang", "media", "ns1:type", "ns2:alphabet", "ns2:ph", "onabort", "onblur", "oncanplay", "oncanplaythrough", "onchange", "onclick", "oncontextmenu", "ondblclick", "ondrag", "ondragend", "ondragenter", "ondragleave", "ondragover", "ondragstart", "ondrop", "ondurationchange", "onemptied", "onended", "onerror", "onfocus", "oninput", "oninvalid", "onkeydown", "onkeypress", "onkeyup", "onload", "onloadeddata", "onloadedmetadata", "onloadstart", "onmousedown", "onmousemove", "onmouseout", "onmouseover", "onmouseup", "onmousewheel", "onpause", "onplay", "onplaying", "onprogress", "onratechange", "onreadystatechange", "onreset", "onscroll", "onseeked", "onseeking", "onselect", "onshow", "onstalled", "onsubmit", "onsuspend", "ontimeupdate", "onvolumechange", "onwaiting", "prefix", "property", "rel", "resource", "rev", "role", "spellcheck", "style", "tabindex", "target", "title", "type", "typeof", "vocab", "xml:base", "xml:lang", "xml:space", "colspan", "rowspan", "epub:type", "epub:prefix"];
-      allowedXhtml11Tags = ["div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "dl", "dt", "dd", "address", "hr", "pre", "blockquote", "center", "ins", "del", "a", "span", "bdo", "br", "em", "strong", "dfn", "code", "samp", "kbd", "bar", "cite", "abbr", "acronym", "q", "sub", "sup", "tt", "i", "b", "big", "small", "u", "s", "strike", "basefont", "font", "object", "param", "img", "table", "caption", "colgroup", "col", "thead", "tfoot", "tbody", "tr", "th", "td", "embed", "applet", "iframe", "img", "map", "noscript", "ns:svg", "object", "script", "table", "tt", "var"];
+      content.author =
+        content.author && _.isString(content.author)
+          ? [content.author]
+          : !content.author || !_.isArray(content.author)
+          ? []
+          : content.author;
+      allowedAttributes = [
+        "content",
+        "alt",
+        "id",
+        "title",
+        "src",
+        "href",
+        "about",
+        "accesskey",
+        "aria-activedescendant",
+        "aria-atomic",
+        "aria-autocomplete",
+        "aria-busy",
+        "aria-checked",
+        "aria-controls",
+        "aria-describedat",
+        "aria-describedby",
+        "aria-disabled",
+        "aria-dropeffect",
+        "aria-expanded",
+        "aria-flowto",
+        "aria-grabbed",
+        "aria-haspopup",
+        "aria-hidden",
+        "aria-invalid",
+        "aria-label",
+        "aria-labelledby",
+        "aria-level",
+        "aria-live",
+        "aria-multiline",
+        "aria-multiselectable",
+        "aria-orientation",
+        "aria-owns",
+        "aria-posinset",
+        "aria-pressed",
+        "aria-readonly",
+        "aria-relevant",
+        "aria-required",
+        "aria-selected",
+        "aria-setsize",
+        "aria-sort",
+        "aria-valuemax",
+        "aria-valuemin",
+        "aria-valuenow",
+        "aria-valuetext",
+        "class",
+        "content",
+        "contenteditable",
+        "contextmenu",
+        "datatype",
+        "dir",
+        "draggable",
+        "dropzone",
+        "hidden",
+        "hreflang",
+        "id",
+        "inlist",
+        "itemid",
+        "itemref",
+        "itemscope",
+        "itemtype",
+        "lang",
+        "media",
+        "ns1:type",
+        "ns2:alphabet",
+        "ns2:ph",
+        "onabort",
+        "onblur",
+        "oncanplay",
+        "oncanplaythrough",
+        "onchange",
+        "onclick",
+        "oncontextmenu",
+        "ondblclick",
+        "ondrag",
+        "ondragend",
+        "ondragenter",
+        "ondragleave",
+        "ondragover",
+        "ondragstart",
+        "ondrop",
+        "ondurationchange",
+        "onemptied",
+        "onended",
+        "onerror",
+        "onfocus",
+        "oninput",
+        "oninvalid",
+        "onkeydown",
+        "onkeypress",
+        "onkeyup",
+        "onload",
+        "onloadeddata",
+        "onloadedmetadata",
+        "onloadstart",
+        "onmousedown",
+        "onmousemove",
+        "onmouseout",
+        "onmouseover",
+        "onmouseup",
+        "onmousewheel",
+        "onpause",
+        "onplay",
+        "onplaying",
+        "onprogress",
+        "onratechange",
+        "onreadystatechange",
+        "onreset",
+        "onscroll",
+        "onseeked",
+        "onseeking",
+        "onselect",
+        "onshow",
+        "onstalled",
+        "onsubmit",
+        "onsuspend",
+        "ontimeupdate",
+        "onvolumechange",
+        "onwaiting",
+        "prefix",
+        "property",
+        "rel",
+        "resource",
+        "rev",
+        "role",
+        "spellcheck",
+        "style",
+        "tabindex",
+        "target",
+        "title",
+        "type",
+        "typeof",
+        "vocab",
+        "xml:base",
+        "xml:lang",
+        "xml:space",
+        "colspan",
+        "rowspan",
+        "epub:type",
+        "epub:prefix",
+      ];
+      allowedXhtml11Tags = [
+        "div",
+        "p",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
+        "dl",
+        "dt",
+        "dd",
+        "address",
+        "hr",
+        "pre",
+        "blockquote",
+        "center",
+        "ins",
+        "del",
+        "a",
+        "span",
+        "bdo",
+        "br",
+        "em",
+        "strong",
+        "dfn",
+        "code",
+        "samp",
+        "kbd",
+        "bar",
+        "cite",
+        "abbr",
+        "acronym",
+        "q",
+        "sub",
+        "sup",
+        "tt",
+        "i",
+        "b",
+        "big",
+        "small",
+        "u",
+        "s",
+        "strike",
+        "basefont",
+        "font",
+        "object",
+        "param",
+        "img",
+        "table",
+        "caption",
+        "colgroup",
+        "col",
+        "thead",
+        "tfoot",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "embed",
+        "applet",
+        "iframe",
+        "img",
+        "map",
+        "noscript",
+        "ns:svg",
+        "object",
+        "script",
+        "table",
+        "tt",
+        "var",
+      ];
       $ = cheerio.load(content.data, {
         lowerCaseTags: true,
-        recognizeSelfClosing: true
+        recognizeSelfClosing: true,
       });
       // Only body innerHTML is allowed
       if ($("body").length) {
         $ = cheerio.load($("body").html(), {
           lowerCaseTags: true,
-          recognizeSelfClosing: true
+          recognizeSelfClosing: true,
         });
       }
       $($("*").get().reverse()).each((elemIndex: number, elem: any) => {
@@ -168,11 +404,14 @@ class Epub {
           }
         }
         if (self.options.version === 2) {
-          if (ref1 = that.name, allowedXhtml11Tags.indexOf(ref1) >= 0) {
-
+          if (((ref1 = that.name), allowedXhtml11Tags.indexOf(ref1) >= 0)) {
           } else {
             if (self.options.verbose) {
-              console.log("Warning (content[" + index + "]):", that.name, "tag isn't allowed on EPUB 2/XHTML 1.1 DTD.");
+              console.log(
+                "Warning (content[" + index + "]):",
+                that.name,
+                "tag isn't allowed on EPUB 2/XHTML 1.1 DTD."
+              );
             }
             child = $(that).html();
             return $(that).replaceWith($("<div>" + child + "</div>"));
@@ -180,11 +419,18 @@ class Epub {
         }
       });
       $("img").each((index: number, elem: any) => {
-        var dir: string, extension: string, id: string, image: any, mediaType: string, url: string;
+        var dir: string,
+          extension: string,
+          id: string,
+          image: any,
+          mediaType: string,
+          url: string;
         url = $(elem).attr("src");
-        if (image = self.options.images?.find((element: any) => {
-          return element.url === url;
-        })) {
+        if (
+          (image = self.options.images?.find((element: any) => {
+            return element.url === url;
+          }))
+        ) {
           id = image.id;
           extension = image.extension;
         } else {
@@ -200,10 +446,12 @@ class Epub {
       return content;
     });
     if (this.options.cover) {
-      const urlData =  url.parse(this.options.cover);
+      const urlData = url.parse(this.options.cover);
       const coverUrl = `${urlData.protocol}//${urlData.hostname}/${urlData.pathname}`;
       this.options._coverMediaType = mime.getType(coverUrl)!;
-      this.options._coverExtension = mime.getExtension(this.options._coverMediaType)!;
+      this.options._coverExtension = mime.getExtension(
+        this.options._coverMediaType
+      )!;
     }
   }
 
@@ -212,131 +460,219 @@ class Epub {
     if (self.options.verbose) {
       console.log("Generating Template Files.....");
     }
-    return this.generateTempFile().then(function() {
-      if (self.options.verbose) {
-        console.log("Downloading Images...");
-      }
-      return self.downloadAllImage().fin(function() {
+    return this.generateTempFile().then(
+      function () {
         if (self.options.verbose) {
-          console.log("Making Cover...");
+          console.log("Downloading Images...");
         }
-        return self.makeCover().then(function() {
-          if (self.options.verbose) {
-            console.log("Generating Epub Files...");
-          }
-          return self.genEpub().then(function(result: any) {
+        return self.downloadAllImage().fin(
+          function () {
             if (self.options.verbose) {
-              console.log("About to finish...");
+              console.log("Making Cover...");
             }
-            self.defer.resolve(result);
-            if (self.options.verbose) {
-              return console.log("Done.");
-            }
-          }, function(err: any) {
+            return self.makeCover().then(
+              function () {
+                if (self.options.verbose) {
+                  console.log("Generating Epub Files...");
+                }
+                return self.genEpub().then(
+                  function (result: any) {
+                    if (self.options.verbose) {
+                      console.log("About to finish...");
+                    }
+                    self.defer.resolve(result);
+                    if (self.options.verbose) {
+                      return console.log("Done.");
+                    }
+                  },
+                  function (err: Error) {
+                    return self.defer.reject(err);
+                  }
+                );
+              },
+              function (err: Error) {
+                return self.defer.reject(err);
+              }
+            );
+          },
+          function (err: Error) {
             return self.defer.reject(err);
-          });
-        }, function(err: any) {
-          return self.defer.reject(err);
-        });
-      }, function(err: any) {
+          }
+        );
+      },
+      function (err: Error) {
         return self.defer.reject(err);
-      });
-    }, function(err: any) {
-      return self.defer.reject(err);
-    });
+      }
+    );
   }
 
   generateTempFile() {
-    var base, generateDefer = new Q.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
+    var base,
+      generateDefer = new Q.defer(),
+      htmlTocPath,
+      ncxTocPath,
+      opfPath,
+      self = this;
     if (!fs.existsSync(this.options.tempDir!)) {
       fs.mkdirSync(this.options.tempDir!);
     }
     fs.mkdirSync(this.uuid);
     fs.mkdirSync(path.resolve(this.uuid, "./OEBPS"));
-    (base = this.options).css || (base.css = fs.readFileSync(path.resolve(__dirname, "../templates/template.css")));
-    fs.writeFileSync(path.resolve(this.uuid, "./OEBPS/style.css"), this.options.css);
+    (base = this.options).css ||
+      (base.css = fs.readFileSync(
+        path.resolve(__dirname, "../templates/template.css")
+      ));
+    fs.writeFileSync(
+      path.resolve(this.uuid, "./OEBPS/style.css"),
+      this.options.css
+    );
     if (self.options.customCss) {
-      fs.writeFileSync(path.resolve(this.uuid, "./OEBPS/customStyle.css"), this.options.customCss!);
+      fs.writeFileSync(
+        path.resolve(this.uuid, "./OEBPS/customStyle.css"),
+        this.options.customCss!
+      );
     }
-    if (self.options.fonts && self.options.fonts.length>0) {
+    if (self.options.fonts && self.options.fonts.length > 0) {
       fs.mkdirSync(path.resolve(this.uuid, "./OEBPS/fonts"));
-      this.options.fonts = _.map(this.options.fonts ?? [], function(font) {
+      this.options.fonts = _.map(this.options.fonts ?? [], function (font) {
         var filename;
         if (!fs.existsSync(font)) {
-          generateDefer.reject(new Error('Custom font not found at ' + font + '.'));
+          generateDefer.reject(
+            new Error("Custom font not found at " + font + ".")
+          );
           return generateDefer.promise;
         }
         filename = path.basename(font);
-        fsextra.copySync(font, path.resolve(self.uuid, "./OEBPS/fonts/" + filename));
+        fsextra.copySync(
+          font,
+          path.resolve(self.uuid, "./OEBPS/fonts/" + filename)
+        );
         return filename;
       });
     }
-    _.each(this.options.content, function(content) {
+    _.each(this.options.content, function (content) {
       var data;
-      data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || '')}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
-      ${self.options.customCss ? '<link rel="stylesheet" type="text/css" href="customStyle.css" />\n':''}</head>\n<body>`;
-      data += content.title && self.options.appendChapterTitles ? `<h1>${entities.encodeXML(content.title)}</h1>` : "";
-      data += content.title && content.author && content.author.length ? `<p class='epub-author'>${entities.encodeXML(content.author.join(", "))}</p>` : "";
-      data += content.title && content.url ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>` : "";
+      data = `${
+        self.options.docHeader
+      }\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(
+        content.title || ""
+      )}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
+      ${
+        self.options.customCss
+          ? '<link rel="stylesheet" type="text/css" href="customStyle.css" />\n'
+          : ""
+      }</head>\n<body>`;
+      data +=
+        content.title && self.options.appendChapterTitles
+          ? `<h1>${entities.encodeXML(content.title)}</h1>`
+          : "";
+      data +=
+        content.title && content.author && content.author.length
+          ? `<p class='epub-author'>${entities.encodeXML(
+              content.author.join(", ")
+            )}</p>`
+          : "";
+      data +=
+        content.title && content.url
+          ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>`
+          : "";
       data += `${content.data}</body></html>`;
       return fs.writeFileSync(content.filePath, data);
     });
     // write meta-inf/container.xml
     fs.mkdirSync(this.uuid + "/META-INF");
-    fs.writeFileSync(`${this.uuid}/META-INF/container.xml`, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>");
+    fs.writeFileSync(
+      `${this.uuid}/META-INF/container.xml`,
+      '<?xml version="1.0" encoding="UTF-8" ?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>'
+    );
     if (self.options.version === 2) {
       // write meta-inf/com.apple.ibooks.display-options.xml [from pedrosanta:xhtml#6]
-      fs.writeFileSync(`${this.uuid}/META-INF/com.apple.ibooks.display-options.xml`, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<display_options>\n  <platform name=\"*\">\n    <option name=\"specified-fonts\">true</option>\n  </platform>\n</display_options>");
+      fs.writeFileSync(
+        `${this.uuid}/META-INF/com.apple.ibooks.display-options.xml`,
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<display_options>\n  <platform name="*">\n    <option name="specified-fonts">true</option>\n  </platform>\n</display_options>'
+      );
     }
-    opfPath = self.options.customOpfTemplatePath || path.resolve(__dirname, `../templates/epub${self.options.version}/content.opf.ejs`);
+    opfPath =
+      self.options.customOpfTemplatePath ||
+      path.resolve(
+        __dirname,
+        `../templates/epub${self.options.version}/content.opf.ejs`
+      );
     if (!fs.existsSync(opfPath)) {
-      generateDefer.reject(new Error('Custom file to OPF template not found.'));
+      generateDefer.reject(new Error("Custom file to OPF template not found."));
       return generateDefer.promise;
     }
-    ncxTocPath = self.options.customNcxTocTemplatePath || path.resolve(__dirname, "../templates/toc.ncx.ejs");
+    ncxTocPath =
+      self.options.customNcxTocTemplatePath ||
+      path.resolve(__dirname, "../templates/toc.ncx.ejs");
     if (!fs.existsSync(ncxTocPath)) {
-      generateDefer.reject(new Error('Custom file the NCX toc template not found.'));
+      generateDefer.reject(
+        new Error("Custom file the NCX toc template not found.")
+      );
       return generateDefer.promise;
     }
-    htmlTocPath = self.options.customHtmlTocTemplatePath || path.resolve(__dirname, `../templates/epub${self.options.version}/toc.xhtml.ejs`);
+    htmlTocPath =
+      self.options.customHtmlTocTemplatePath ||
+      path.resolve(
+        __dirname,
+        `../templates/epub${self.options.version}/toc.xhtml.ejs`
+      );
     if (!fs.existsSync(htmlTocPath)) {
-      generateDefer.reject(new Error('Custom file to HTML toc template not found.'));
+      generateDefer.reject(
+        new Error("Custom file to HTML toc template not found.")
+      );
       return generateDefer.promise;
     }
-    Q.all([Q.nfcall(ejs.renderFile, opfPath, self.options), Q.nfcall(ejs.renderFile, ncxTocPath, self.options), Q.nfcall(ejs.renderFile, htmlTocPath, self.options)]).spread(function(data1: any, data2: any, data3: any) {
-      fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/content.opf"), data1);
-      fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
-      fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
-      return generateDefer.resolve();
-    }, function(err: any) {
-      console.error(arguments);
-      return generateDefer.reject(err);
-    });
+    Q.all([
+      Q.nfcall(ejs.renderFile, opfPath, self.options),
+      Q.nfcall(ejs.renderFile, ncxTocPath, self.options),
+      Q.nfcall(ejs.renderFile, htmlTocPath, self.options),
+    ]).spread(
+      function (data1: any, data2: any, data3: any) {
+        fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/content.opf"), data1);
+        fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
+        fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
+        return generateDefer.resolve();
+      },
+      function (err: any) {
+        console.error(arguments);
+        return generateDefer.reject(err);
+      }
+    );
     return generateDefer.promise;
   }
 
   makeCover() {
-    var coverDefer = new Q.defer(), destPath, self = this, userAgent, writeStream;
-    userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
+    var coverDefer = new Q.defer(),
+      destPath,
+      self = this,
+      userAgent,
+      writeStream;
+    userAgent =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
     if (this.options.cover) {
-      destPath = path.resolve(this.uuid, "./OEBPS/cover." + this.options._coverExtension);
+      destPath = path.resolve(
+        this.uuid,
+        "./OEBPS/cover." + this.options._coverExtension
+      );
       writeStream = null;
       if (this.options.cover.slice(0, 4) === "http") {
         writeStream = request.get(this.options.cover).set({
-          'User-Agent': userAgent
+          "User-Agent": userAgent,
         });
         writeStream.pipe(fs.createWriteStream(destPath));
       } else {
         writeStream = fs.createReadStream(this.options.cover);
         writeStream.pipe(fs.createWriteStream(destPath));
       }
-      writeStream.on("end", function() {
+      // writeStream.on("end",)
+      (writeStream as fs.ReadStream).on("end", function () {
         if (self.options.verbose) {
           console.log("[Success] cover image downloaded successfully!");
         }
         return coverDefer.resolve();
       });
-      writeStream.on("error", function(err) {
+      (writeStream as fs.ReadStream).on("error", function (err: any) {
         console.error("Error", err);
         return coverDefer.reject(err);
       });
@@ -346,16 +682,26 @@ class Epub {
     return coverDefer.promise;
   }
 
-  downloadImage(options: any) { //{id, url, mediaType}
-    var auxpath, downloadImageDefer = new Q.defer(), filename: any, requestAction, self = this, userAgent;
-    userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
+  downloadImage(options: any) {
+    //{id, url, mediaType}
+    var auxpath,
+      downloadImageDefer = new Q.defer(),
+      filename: any,
+      requestAction,
+      self = this,
+      userAgent;
+    userAgent =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
     if (!options.url && typeof options !== "string") {
       return false;
     }
     if (!options.url.match(/^http/i)) {
       return false;
     }
-    filename = path.resolve(self.uuid, "./OEBPS/images/" + options.id + "." + options.extension);
+    filename = path.resolve(
+      self.uuid,
+      "./OEBPS/images/" + options.id + "." + options.extension
+    );
     if (options.url.indexOf("file://") === 0) {
       auxpath = options.url.substr(7);
       fsextra.copySync(auxpath, filename);
@@ -363,21 +709,28 @@ class Epub {
     } else {
       if (options.url.indexOf("http") === 0) {
         requestAction = request.get(options.url).set({
-          'User-Agent': userAgent
+          "User-Agent": userAgent,
         });
         requestAction.pipe(fs.createWriteStream(filename));
       } else {
-        requestAction = fs.createReadStream(path.resolve(options.dir, options.url));
+        requestAction = fs.createReadStream(
+          path.resolve(options.dir, options.url)
+        );
         requestAction.pipe(fs.createWriteStream(filename));
       }
-      requestAction.on('error', function(err) {
+      (requestAction as fs.ReadStream).on("error", function (err: Error) {
         if (self.options.verbose) {
-          console.error('[Download Error]', 'Error while downloading', options.url, err);
+          console.error(
+            "[Download Error]",
+            "Error while downloading",
+            options.url,
+            err
+          );
         }
         fs.unlinkSync(filename);
         return downloadImageDefer.reject(err);
       });
-      requestAction.on('end', function() {
+      (requestAction as fs.ReadStream).on("end", function () {
         if (self.options.verbose) {
           console.log("[Download Success]", options.url);
         }
@@ -388,16 +741,18 @@ class Epub {
   }
 
   downloadAllImage() {
-    var deferArray: any[], imgDefer = new Q.defer(), self = this;
+    var deferArray: any[],
+      imgDefer = new Q.defer(),
+      self = this;
     if (!self.options.images?.length) {
       imgDefer.resolve();
     } else {
       fs.mkdirSync(path.resolve(this.uuid, "./OEBPS/images"));
       deferArray = [];
-      _.each(self.options.images, function(image) {
+      _.each(self.options.images, function (image) {
         return deferArray.push(self.downloadImage(image));
       });
-      Q.all(deferArray).fin(function() {
+      Q.all(deferArray).fin(function () {
         return imgDefer.resolve();
       });
     }
@@ -405,7 +760,11 @@ class Epub {
   }
 
   genEpub() {
-    var archive, cwd: string, genDefer = new Q.defer(), output, self = this;
+    var archive,
+      cwd: string,
+      genDefer = new Q.defer(),
+      output,
+      self = this;
     // Thanks to Paul Bradley
     // http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
     // Web Archive URL:
@@ -415,8 +774,8 @@ class Epub {
     cwd = this.uuid;
     archive = archiver("zip", {
       zlib: {
-        level: 9
-      }
+        level: 9,
+      },
     });
     output = fs.createWriteStream(self.options.output!);
     if (self.options.verbose) {
@@ -424,38 +783,32 @@ class Epub {
     }
     archive.append("application/epub+zip", {
       store: true,
-      name: "mimetype"
+      name: "mimetype",
     });
     archive.directory(cwd + "/META-INF", "META-INF");
     archive.directory(cwd + "/OEBPS", "OEBPS");
     archive.pipe(output);
-    archive.on("end", function() {
+    archive.on("end", async function () {
       if (self.options.verbose) {
         console.log("Done zipping, clearing temp dir...");
       }
-      return rimraf(cwd, function(err) {
-        if (err) {
-          return genDefer.reject(err);
-        } else {
-          return genDefer.resolve();
-        }
-      });
+      return await fsPromise.rm(cwd, { recursive: true, force: true });
     });
-    archive.on("error", function(err) {
+    archive.on("error", function (err) {
       return genDefer.reject(err);
     });
     archive.finalize();
     return genDefer.promise;
   }
 
-  async getBuffer () {
+  async getBuffer() {
     try {
       await this.render();
       const buffer = fs.readFileSync(this.options.output!);
       fs.unlinkSync(this.options.output!);
       return buffer;
     } catch (error) {
-      fs.rmdirSync(this.options.uuid!, { recursive:true });
+      fs.rmdirSync(this.options.uuid!, { recursive: true });
     }
   }
 }

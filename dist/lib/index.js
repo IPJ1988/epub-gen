@@ -632,6 +632,7 @@ class Epub {
     }
     genEpub() {
         return new Promise((resolve, reject) => {
+            console.log("start zip file", this.uuid);
             zipFolder(this.uuid, (err, buffer) => {
                 //self.deleteTmpFile();
                 if (err) {

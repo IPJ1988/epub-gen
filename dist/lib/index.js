@@ -471,10 +471,6 @@ class Epub {
             fs_1.default.mkdirSync(path_1.default.resolve(this.uuid, "./OEBPS/fonts"));
             this.options.fonts = await underscore_1.default.map(this.options.fonts ?? [], async function (font) {
                 var filename;
-                if (!fs_1.default.existsSync(font)) {
-                    generateDefer.reject(new Error("Custom font not found at " + font + "."));
-                    return generateDefer.promise;
-                }
                 filename = path_1.default.basename(font);
                 if (isValidUrl(font)) {
                     const response = await axios_1.default.get(font);
@@ -482,13 +478,16 @@ class Epub {
                     return filename;
                 }
                 else {
+                    if (!fs_1.default.existsSync(font)) {
+                        generateDefer.reject(new Error("Custom font not found at " + font + "."));
+                        return generateDefer.promise;
+                    }
                     fs_extra_1.default.copySync(font, path_1.default.resolve(self.uuid, "./OEBPS/fonts/" + filename));
                     return filename;
                 }
             });
         }
         await underscore_1.default.each(this.options.content, async function (content) {
-            console.log({ content });
             var data;
             data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities_1.default.encodeXML(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
       ${self.options.customCss

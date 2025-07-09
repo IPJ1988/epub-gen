@@ -543,7 +543,7 @@ class Epub {
     //   );
     // }
     await async.eachLimit(
-      this.options.content,
+      self.options.content,
       1,
       async (content: EpubContent) => {
         console.log("content.filePath", content);

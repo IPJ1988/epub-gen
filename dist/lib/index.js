@@ -62,6 +62,12 @@ class Epub {
         this.name = "";
         this.options = options;
         this.id = contentUID;
+        if (this.options.fonts) {
+            this.options.fonts = [];
+        }
+        if (this.options.content) {
+            this.options.content = [];
+        }
         const self = this;
         this.options = underscore_1.default.extend({
             output: `${output}/${contentUID}.epub`, // path.resolve(__dirname, "../tempDir/book.epub"),

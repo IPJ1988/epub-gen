@@ -81,7 +81,12 @@ class Epub {
   constructor(options: Options, contentUID: string, output: string) {
     this.options = options as Options;
     this.id = contentUID;
-
+    if (this.options.fonts) {
+      this.options.fonts = [];
+    }
+    if (this.options.content) {
+      this.options.content = [];
+    }
     const self = this;
     this.options = _.extend(
       {

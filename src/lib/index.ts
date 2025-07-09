@@ -19,7 +19,7 @@ import rimraf from "rimraf";
 import { v4 as uuidv4 } from "uuid";
 import async, { mapLimit } from "async";
 import url from "url";
-import { error } from "console";
+const zipFolder = require("zip-dir");
 superagent(request);
 export interface EpubContent {
   title?: string;
@@ -100,7 +100,7 @@ class Epub {
         appendChapterTitles: options.appendChapterTitles ?? false,
         date: options.date ?? new Date().toISOString(),
         lang: options.lang,
-        fonts: options.fonts,
+        fonts: options.fonts ?? [],
         customOpfTemplatePath: options.customHtmlTocTemplatePath,
         customNcxTocTemplatePath: options.customNcxTocTemplatePath,
         customHtmlTocTemplatePath: options.customOpfTemplatePath,
@@ -476,8 +476,7 @@ class Epub {
     console.log("Making Cover...");
     await self.makeCover();
     console.log("Generating Epub Files...");
-    await self.genEpub();
-    console.log("Complete Gen EPUB");
+    return await self.genEpub();
   }
 
   async generateTempFile() {
@@ -745,42 +744,47 @@ class Epub {
     return true;
   }
 
-  genEpub() {
+  genEpub(): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      var archive,
-        cwd: string,
-        genDefer = Q.defer(),
-        output,
-        self = this;
-
-      cwd = this.uuid;
-      archive = archiver("zip", {
-        zlib: {
-          level: 9,
-        },
-      });
-      output = fs.createWriteStream(self.options.output!);
-      if (self.options.verbose) {
-        console.log("Zipping temp dir to", self.options.output);
-      }
-      archive.append("application/epub+zip", {
-        store: true,
-        name: "mimetype",
-      });
-      archive.directory(cwd + "/META-INF", "META-INF");
-      archive.directory(cwd + "/OEBPS", "OEBPS");
-      archive.pipe(output);
-      archive.on("end", async function () {
-        if (self.options.verbose) {
-          console.log("Done zipping, clearing temp dir...");
+      zipFolder(this.uuid, (err: Error, buffer: Buffer) => {
+        //self.deleteTmpFile();
+        if (err) {
+          reject(err);
         }
-        console.log("complete zip file");
-        resolve(true); //await fsPromise.rm(cwd, { recursive: true, force: true });
+        resolve(buffer);
       });
-      archive.on("error", function (err) {
-        reject(err);
-      });
-      archive.finalize();
+      // var archive,
+      //   cwd: string,
+      //   output,
+      //   self = this;
+      // cwd = this.uuid;
+      // archive = archiver("zip", {
+      //   zlib: {
+      //     level: 9,
+      //   },
+      // });
+      // output = fs.createWriteStream(self.options.output!);
+      // if (self.options.verbose) {
+      //   console.log("Zipping temp dir to", self.options.output);
+      // }
+      // archive.append("application/epub+zip", {
+      //   store: true,
+      //   name: "mimetype",
+      // });
+      // archive.directory(cwd + "/META-INF", "META-INF");
+      // archive.directory(cwd + "/OEBPS", "OEBPS");
+      // archive.pipe(output);
+      // archive.on("end", async function () {
+      //   if (self.options.verbose) {
+      //     console.log("Done zipping, clearing temp dir...");
+      //   }
+      //   console.log("complete zip file");
+      //   resolve(true); //await fsPromise.rm(cwd, { recursive: true, force: true });
+      // });
+      // archive.on("error", function (err) {
+      //   reject(err);
+      // });
+      // archive.finalize();
     });
 
     // Thanks to Paul Bradley
@@ -791,17 +795,26 @@ class Epub {
     // https://gist.github.com/cyrilis/8d48eef37fbc108869ac32eb3ef97bca
   }
 
+  // archiveEpub(): Promise<Buffer> {
+  //   const self = this;
+  //   return new Promise((resolve, reject) => {
+  //     zipFolder(this.uuid, (err: Error, buffer: Buffer) => {
+  //       //self.deleteTmpFile();
+  //       if (err) {
+  //         reject(err);
+  //       }
+  //       resolve(buffer);
+  //     });
+  //   });
+  // }
+
   async getBuffer() {
     try {
       console.log("get getBuffer");
-      await this.render();
-      const buffer = fs.readFileSync(this.options.output!);
-      fs.unlinkSync(this.options.output!);
-      console.log("return buffer", buffer.length);
-      return buffer;
+      return await this.render();
     } catch (error) {
       console.error("error get file", error);
-      fs.rmdirSync(this.options.uuid!, { recursive: true });
+      throw error;
     }
   }
 }

@@ -57,13 +57,13 @@ declare class Epub {
     name: string;
     promise: any;
     constructor(options: Options, contentUID: string, output: string);
-    render(): Promise<void>;
+    render(): Promise<Buffer<ArrayBufferLike>>;
     generateTempFile(): Promise<void>;
     makeCover(): Promise<unknown>;
     downloadImage(options: any): Promise<unknown>;
     downloadAllImage(): Promise<boolean>;
-    genEpub(): Promise<unknown>;
-    getBuffer(): Promise<NonSharedBuffer | undefined>;
+    genEpub(): Promise<Buffer>;
+    getBuffer(): Promise<Buffer<ArrayBufferLike>>;
 }
 export default Epub;
 //# sourceMappingURL=index.d.ts.map

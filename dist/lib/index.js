@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -20,6 +53,7 @@ const diacritics_1 = __importDefault(require("diacritics"));
 const archiver_1 = __importDefault(require("archiver"));
 const mime_1 = __importDefault(require("mime"));
 const uuid_1 = require("uuid");
+const async_1 = __importStar(require("async"));
 const url_1 = __importDefault(require("url"));
 (0, superagent_proxy_1.default)(superagent_1.default);
 class Epub {
@@ -401,7 +435,7 @@ class Epub {
         console.log("Complete Gen EPUB");
     }
     async generateTempFile() {
-        var base, generateDefer = q_1.default.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
+        var base, htmlTocPath, ncxTocPath, opfPath, self = this;
         if (!fs_1.default.existsSync(this.options.tempDir)) {
             fs_1.default.mkdirSync(this.options.tempDir);
         }
@@ -415,7 +449,7 @@ class Epub {
         }
         if (self.options.fonts && self.options.fonts.length > 0) {
             fs_1.default.mkdirSync(path_1.default.resolve(this.uuid, "./OEBPS/fonts"));
-            this.options.fonts = await underscore_1.default.map(this.options.fonts ?? [], async function (font) {
+            this.options.fonts = await (0, async_1.mapLimit)(this.options.fonts ?? [], 1, async (font) => {
                 var filename;
                 filename = path_1.default.basename(font);
                 if (isValidUrl(font)) {
@@ -425,15 +459,20 @@ class Epub {
                 }
                 else {
                     if (!fs_1.default.existsSync(font)) {
-                        generateDefer.reject(new Error("Custom font not found at " + font + "."));
-                        return generateDefer.promise;
+                        new Error("Custom font not found at " + font + ".");
                     }
                     fs_extra_1.default.copySync(font, path_1.default.resolve(self.uuid, "./OEBPS/fonts/" + filename));
                     return filename;
                 }
             });
         }
-        await underscore_1.default.each(this.options.content, async function (content) {
+        //  });
+        //   this.options.fonts = await _.map(
+        //     (this.options.fonts as string[]) ?? [],
+        //     async function (font: string) {
+        //   );
+        // }
+        await async_1.default.eachLimit(this.options.content, 1, async (content) => {
             var data;
             data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities_1.default.encodeXML(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
       ${self.options.customCss
@@ -465,37 +504,28 @@ class Epub {
             self.options.customOpfTemplatePath ||
                 path_1.default.resolve(__dirname, `../templates/epub${self.options.version}/content.opf.ejs`);
         if (!fs_1.default.existsSync(opfPath)) {
-            generateDefer.reject(new Error("Custom file to OPF template not found."));
-            return generateDefer.promise;
+            new Error("Custom file to OPF template not found.");
         }
         ncxTocPath =
             self.options.customNcxTocTemplatePath ||
                 path_1.default.resolve(__dirname, "../templates/toc.ncx.ejs");
         if (!fs_1.default.existsSync(ncxTocPath)) {
-            generateDefer.reject(new Error("Custom file the NCX toc template not found."));
-            return generateDefer.promise;
+            new Error("Custom file the NCX toc template not found.");
         }
         htmlTocPath =
             self.options.customHtmlTocTemplatePath ||
                 path_1.default.resolve(__dirname, `../templates/epub${self.options.version}/toc.xhtml.ejs`);
         if (!fs_1.default.existsSync(htmlTocPath)) {
-            generateDefer.reject(new Error("Custom file to HTML toc template not found."));
-            return generateDefer.promise;
+            new Error("Custom file to HTML toc template not found.");
         }
-        await q_1.default.all([
-            q_1.default.nfcall(ejs_1.default.renderFile, opfPath, self.options),
-            q_1.default.nfcall(ejs_1.default.renderFile, ncxTocPath, self.options),
-            q_1.default.nfcall(ejs_1.default.renderFile, htmlTocPath, self.options),
-        ]).spread(async function (data1, data2, data3) {
-            fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/content.opf"), data1);
-            fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
-            fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
-            return generateDefer.resolve();
-        }, function (err) {
-            console.error(arguments);
-            return generateDefer.reject(err);
-        });
-        return generateDefer.promise;
+        const [data1, data2, data3] = await Promise.all([
+            ejs_1.default.renderFile(ncxTocPath, self.options),
+            ejs_1.default.renderFile(ncxTocPath, self.options),
+            ejs_1.default.renderFile(htmlTocPath, self.options),
+        ]);
+        fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/content.opf"), data1);
+        fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
+        fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
     }
     makeCover() {
         return new Promise((resolve, reject) => {

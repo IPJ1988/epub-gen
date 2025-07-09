@@ -17,6 +17,7 @@ import archiver from "archiver";
 import mime from "mime";
 import rimraf from "rimraf";
 import { v4 as uuidv4 } from "uuid";
+import async, { mapLimit } from "async";
 import url from "url";
 import { error } from "console";
 superagent(request);
@@ -47,7 +48,7 @@ export interface Options extends OptionsInput {
   appendChapterTitles?: boolean;
   date?: Date;
   lang: string;
-  fonts?: string[] | Promise<string>[];
+  fonts?: string[];
   customOpfTemplatePath?: string | undefined;
   customNcxTocTemplatePath?: string | undefined;
   customHtmlTocTemplatePath?: string | undefined;
@@ -480,7 +481,6 @@ class Epub {
 
   async generateTempFile() {
     var base,
-      generateDefer = Q.defer(),
       htmlTocPath,
       ncxTocPath,
       opfPath,
@@ -506,9 +506,11 @@ class Epub {
     }
     if (self.options.fonts && self.options.fonts.length > 0) {
       fs.mkdirSync(path.resolve(this.uuid, "./OEBPS/fonts"));
-      this.options.fonts = await _.map(
-        (this.options.fonts as string[]) ?? [],
-        async function (font: string) {
+
+      this.options.fonts = await mapLimit(
+        this.options.fonts ?? [],
+        1,
+        async (font: string) => {
           var filename: any;
           filename = path.basename(font);
           if (isValidUrl(font)) {
@@ -520,10 +522,7 @@ class Epub {
             return filename;
           } else {
             if (!fs.existsSync(font)) {
-              generateDefer.reject(
-                new Error("Custom font not found at " + font + ".")
-              );
-              return generateDefer.promise;
+              new Error("Custom font not found at " + font + ".");
             }
             fsextra.copySync(
               font,
@@ -534,7 +533,15 @@ class Epub {
         }
       );
     }
-    await _.each(this.options.content, async function (content) {
+
+    //  });
+    //   this.options.fonts = await _.map(
+    //     (this.options.fonts as string[]) ?? [],
+    //     async function (font: string) {
+
+    //   );
+    // }
+    await async.eachLimit(this.options.content, 1, async (content) => {
       var data;
       data = `${
         self.options.docHeader
@@ -583,17 +590,13 @@ class Epub {
         `../templates/epub${self.options.version}/content.opf.ejs`
       );
     if (!fs.existsSync(opfPath)) {
-      generateDefer.reject(new Error("Custom file to OPF template not found."));
-      return generateDefer.promise;
+      new Error("Custom file to OPF template not found.");
     }
     ncxTocPath =
       self.options.customNcxTocTemplatePath ||
       path.resolve(__dirname, "../templates/toc.ncx.ejs");
     if (!fs.existsSync(ncxTocPath)) {
-      generateDefer.reject(
-        new Error("Custom file the NCX toc template not found.")
-      );
-      return generateDefer.promise;
+      new Error("Custom file the NCX toc template not found.");
     }
     htmlTocPath =
       self.options.customHtmlTocTemplatePath ||
@@ -602,28 +605,17 @@ class Epub {
         `../templates/epub${self.options.version}/toc.xhtml.ejs`
       );
     if (!fs.existsSync(htmlTocPath)) {
-      generateDefer.reject(
-        new Error("Custom file to HTML toc template not found.")
-      );
-      return generateDefer.promise;
+      new Error("Custom file to HTML toc template not found.");
     }
-    await Q.all([
-      Q.nfcall(ejs.renderFile, opfPath, self.options),
-      Q.nfcall(ejs.renderFile, ncxTocPath, self.options),
-      Q.nfcall(ejs.renderFile, htmlTocPath, self.options),
-    ]).spread(
-      async function (data1: any, data2: any, data3: any) {
-        fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/content.opf"), data1);
-        fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
-        fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
-        return generateDefer.resolve();
-      },
-      function (err: any) {
-        console.error(arguments);
-        return generateDefer.reject(err);
-      }
-    );
-    return generateDefer.promise;
+    const [data1, data2, data3] = await Promise.all([
+      ejs.renderFile(ncxTocPath, self.options),
+      ejs.renderFile(ncxTocPath, self.options),
+      ejs.renderFile(htmlTocPath, self.options),
+    ]);
+
+    fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/content.opf"), data1);
+    fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
+    fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
   }
 
   makeCover() {

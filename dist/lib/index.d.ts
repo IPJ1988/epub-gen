@@ -62,7 +62,7 @@ declare class Epub {
     makeCover(): Q.Promise<unknown>;
     downloadImage(options: any): false | void | Q.Promise<unknown>;
     downloadAllImage(): Q.Promise<unknown>;
-    genEpub(): Q.Promise<unknown>;
+    genEpub(): Promise<unknown>;
     getBuffer(): Promise<NonSharedBuffer | undefined>;
 }
 export default Epub;

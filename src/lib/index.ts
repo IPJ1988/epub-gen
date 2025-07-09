@@ -469,26 +469,26 @@ class Epub {
       console.log("Generating Template Files.....");
     }
     return await this.generateTempFile().then(
-      function () {
+      async function () {
         if (self.options.verbose) {
           console.log("Downloading Images...");
         }
-        return self.downloadAllImage().fin(
-          function () {
+        return await self.downloadAllImage().fin(
+          async function () {
             if (self.options.verbose) {
               console.log("Making Cover...");
             }
-            return self.makeCover().then(
-              function () {
+            return await self.makeCover().then(
+              async function () {
                 if (self.options.verbose) {
                   console.log("Generating Epub Files...");
                 }
-                return self.genEpub().then(
-                  function (result: any) {
+                return await self.genEpub().then(
+                  async function (result: any) {
                     if (self.options.verbose) {
                       console.log("About to finish...");
                     }
-                    self.defer.resolve(result);
+                    await self.defer.resolve(result);
                     if (self.options.verbose) {
                       return console.log("Done.");
                     }
@@ -779,7 +779,7 @@ class Epub {
     return imgDefer.promise;
   }
 
-  genEpub() {
+  async genEpub() {
     var archive,
       cwd: string,
       genDefer = Q.defer(),
@@ -812,13 +812,14 @@ class Epub {
       if (self.options.verbose) {
         console.log("Done zipping, clearing temp dir...");
       }
+      console.log("complete zip file");
       return await fsPromise.rm(cwd, { recursive: true, force: true });
     });
     archive.on("error", function (err) {
       return genDefer.reject(err);
     });
     archive.finalize();
-    return genDefer.promise;
+    return await genDefer.promise;
   }
 
   async getBuffer() {
@@ -828,6 +829,7 @@ class Epub {
       fs.unlinkSync(this.options.output!);
       return buffer;
     } catch (error) {
+      console.error("error get file", error);
       fs.rmdirSync(this.options.uuid!, { recursive: true });
     }
   }

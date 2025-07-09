@@ -425,23 +425,23 @@ class Epub {
         if (self.options.verbose) {
             console.log("Generating Template Files.....");
         }
-        return await this.generateTempFile().then(function () {
+        return await this.generateTempFile().then(async function () {
             if (self.options.verbose) {
                 console.log("Downloading Images...");
             }
-            return self.downloadAllImage().fin(function () {
+            return await self.downloadAllImage().fin(async function () {
                 if (self.options.verbose) {
                     console.log("Making Cover...");
                 }
-                return self.makeCover().then(function () {
+                return await self.makeCover().then(async function () {
                     if (self.options.verbose) {
                         console.log("Generating Epub Files...");
                     }
-                    return self.genEpub().then(function (result) {
+                    return await self.genEpub().then(async function (result) {
                         if (self.options.verbose) {
                             console.log("About to finish...");
                         }
-                        self.defer.resolve(result);
+                        await self.defer.resolve(result);
                         if (self.options.verbose) {
                             return console.log("Done.");
                         }
@@ -652,7 +652,7 @@ class Epub {
         }
         return imgDefer.promise;
     }
-    genEpub() {
+    async genEpub() {
         var archive, cwd, genDefer = Q.defer(), output, self = this;
         // Thanks to Paul Bradley
         // http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
@@ -681,13 +681,14 @@ class Epub {
             if (self.options.verbose) {
                 console.log("Done zipping, clearing temp dir...");
             }
+            console.log("complete zip file");
             return await promises_1.default.rm(cwd, { recursive: true, force: true });
         });
         archive.on("error", function (err) {
             return genDefer.reject(err);
         });
         archive.finalize();
-        return genDefer.promise;
+        return await genDefer.promise;
     }
     async getBuffer() {
         try {
@@ -697,6 +698,7 @@ class Epub {
             return buffer;
         }
         catch (error) {
+            console.error("error get file", error);
             fs_1.default.rmdirSync(this.options.uuid, { recursive: true });
         }
     }

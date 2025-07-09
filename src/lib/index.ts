@@ -1,9 +1,9 @@
 import axios from "axios";
-import path from "path";
+import path, { resolve } from "path";
 import fs from "fs";
 import fsPromise from "fs/promises";
-import * as Q from "q";
-import _ from "underscore";
+import Q from "q";
+import _, { reject } from "underscore";
 import uslug from "uslug";
 import ejs from "ejs";
 import cheerio from "cheerio";
@@ -468,50 +468,14 @@ class Epub {
     if (self.options.verbose) {
       console.log("Generating Template Files.....");
     }
-    return await this.generateTempFile().then(
-      async function () {
-        if (self.options.verbose) {
-          console.log("Downloading Images...");
-        }
-        return await self.downloadAllImage().fin(
-          async function () {
-            if (self.options.verbose) {
-              console.log("Making Cover...");
-            }
-            return await self.makeCover().then(
-              async function () {
-                if (self.options.verbose) {
-                  console.log("Generating Epub Files...");
-                }
-                return await self.genEpub().then(
-                  async function (result: any) {
-                    if (self.options.verbose) {
-                      console.log("About to finish...");
-                    }
-                    await self.defer.resolve(result);
-                    if (self.options.verbose) {
-                      return console.log("Done.");
-                    }
-                  },
-                  function (err: Error) {
-                    return self.defer.reject(err);
-                  }
-                );
-              },
-              function (err: Error) {
-                return self.defer.reject(err);
-              }
-            );
-          }
-          // function (err: Error) {
-          //   return self.defer..reject(err);
-          // }
-        );
-      },
-      function (err: Error) {
-        return self.defer.reject(err);
-      }
-    );
+    await this.generateTempFile();
+    console.log("Downloading Images...");
+    await self.downloadAllImage();
+    console.log("Making Cover...");
+    await self.makeCover();
+    console.log("Generating Epub Files...");
+    await self.genEpub();
+    console.log("Complete Gen EPUB");
   }
 
   async generateTempFile() {
@@ -663,163 +627,166 @@ class Epub {
   }
 
   makeCover() {
-    var coverDefer = Q.defer(),
-      destPath,
-      self = this,
-      userAgent,
-      writeStream;
-    userAgent =
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
-    if (this.options.cover) {
-      destPath = path.resolve(
-        this.uuid,
-        "./OEBPS/cover." + this.options._coverExtension
-      );
-      writeStream = null;
-      if (this.options.cover.slice(0, 4) === "http") {
-        writeStream = request.get(this.options.cover).set({
-          "User-Agent": userAgent,
-        });
-        writeStream.pipe(fs.createWriteStream(destPath));
-      } else {
-        writeStream = fs.createReadStream(this.options.cover);
-        writeStream.pipe(fs.createWriteStream(destPath));
-      }
-      // writeStream.on("end",)
-      (writeStream as fs.ReadStream).on("end", function () {
-        if (self.options.verbose) {
-          console.log("[Success] cover image downloaded successfully!");
+    return new Promise((resolve, reject) => {
+      var destPath,
+        self = this,
+        userAgent,
+        writeStream;
+      userAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
+
+      if (this.options.cover) {
+        destPath = path.resolve(
+          this.uuid,
+          "./OEBPS/cover." + this.options._coverExtension
+        );
+        writeStream = null;
+        if (this.options.cover.slice(0, 4) === "http") {
+          writeStream = request.get(this.options.cover).set({
+            "User-Agent": userAgent,
+          });
+          writeStream.pipe(fs.createWriteStream(destPath));
+        } else {
+          writeStream = fs.createReadStream(this.options.cover);
+          writeStream.pipe(fs.createWriteStream(destPath));
         }
-        return coverDefer.resolve();
-      });
-      (writeStream as fs.ReadStream).on("error", function (err: any) {
-        console.error("Error", err);
-        return coverDefer.reject(err);
-      });
-    } else {
-      coverDefer.resolve();
-    }
-    return coverDefer.promise;
+        // writeStream.on("end",)
+        (writeStream as fs.ReadStream).on("end", function () {
+          if (self.options.verbose) {
+            console.log("[Success] cover image downloaded successfully!");
+          }
+          resolve(true);
+        });
+        (writeStream as fs.ReadStream).on("error", function (err: any) {
+          console.error("Error", err);
+          reject(err);
+        });
+      } else {
+        resolve(true);
+      }
+    });
   }
 
   downloadImage(options: any) {
-    //{id, url, mediaType}
-    var auxpath,
-      downloadImageDefer = Q.defer(),
-      filename: any,
-      requestAction,
-      self = this,
-      userAgent;
-    userAgent =
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
-    if (!options.url && typeof options !== "string") {
-      return false;
-    }
-    if (!options.url.match(/^http/i)) {
-      return false;
-    }
-    filename = path.resolve(
-      self.uuid,
-      "./OEBPS/images/" + options.id + "." + options.extension
-    );
-    if (options.url.indexOf("file://") === 0) {
-      auxpath = options.url.substr(7);
-      fsextra.copySync(auxpath, filename);
-      return downloadImageDefer.resolve(options);
-    } else {
-      if (options.url.indexOf("http") === 0) {
-        requestAction = request.get(options.url).set({
-          "User-Agent": userAgent,
-        });
-        requestAction.pipe(fs.createWriteStream(filename));
-      } else {
-        requestAction = fs.createReadStream(
-          path.resolve(options.dir, options.url)
-        );
-        requestAction.pipe(fs.createWriteStream(filename));
+    return new Promise((resolve, reject) => {
+      var auxpath,
+        filename: any,
+        requestAction,
+        self = this,
+        userAgent;
+      userAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
+      if (!options.url && typeof options !== "string") {
+        return false;
       }
-      (requestAction as fs.ReadStream).on("error", function (err: Error) {
-        if (self.options.verbose) {
-          console.error(
-            "[Download Error]",
-            "Error while downloading",
-            options.url,
-            err
+      if (!options.url.match(/^http/i)) {
+        return false;
+      }
+      filename = path.resolve(
+        self.uuid,
+        "./OEBPS/images/" + options.id + "." + options.extension
+      );
+      if (options.url.indexOf("file://") === 0) {
+        auxpath = options.url.substr(7);
+        fsextra.copySync(auxpath, filename);
+        resolve(options);
+      } else {
+        if (options.url.indexOf("http") === 0) {
+          requestAction = request.get(options.url).set({
+            "User-Agent": userAgent,
+          });
+          requestAction.pipe(fs.createWriteStream(filename));
+        } else {
+          requestAction = fs.createReadStream(
+            path.resolve(options.dir, options.url)
           );
+          requestAction.pipe(fs.createWriteStream(filename));
         }
-        fs.unlinkSync(filename);
-        return downloadImageDefer.reject(err);
-      });
-      (requestAction as fs.ReadStream).on("end", function () {
-        if (self.options.verbose) {
-          console.log("[Download Success]", options.url);
-        }
-        return downloadImageDefer.resolve(options);
-      });
-      return downloadImageDefer.promise;
-    }
+        (requestAction as fs.ReadStream).on("error", function (err: Error) {
+          if (self.options.verbose) {
+            console.error(
+              "[Download Error]",
+              "Error while downloading",
+              options.url,
+              err
+            );
+          }
+          fs.unlinkSync(filename);
+          return reject(err);
+        });
+        (requestAction as fs.ReadStream).on("end", function () {
+          if (self.options.verbose) {
+            console.log("[Download Success]", options.url);
+          }
+          resolve(options);
+        });
+      }
+    });
+    //{id, url, mediaType}
   }
 
-  downloadAllImage() {
+  async downloadAllImage() {
     var deferArray: any[],
-      imgDefer = Q.defer(),
       self = this;
     if (!self.options.images?.length) {
-      imgDefer.resolve();
+      return true;
     } else {
       fs.mkdirSync(path.resolve(this.uuid, "./OEBPS/images"));
       deferArray = [];
-      _.each(self.options.images, function (image) {
-        return deferArray.push(self.downloadImage(image));
+      _.each(self.options.images, async function (image) {
+        return deferArray.push(await self.downloadImage(image));
       });
       Q.all(deferArray).fin(function () {
-        return imgDefer.resolve();
+        return true;
       });
     }
-    return imgDefer.promise;
+    return true;
   }
 
-  async genEpub() {
-    var archive,
-      cwd: string,
-      genDefer = Q.defer(),
-      output,
-      self = this;
+  genEpub() {
+    return new Promise((resolve, reject) => {
+      var archive,
+        cwd: string,
+        genDefer = Q.defer(),
+        output,
+        self = this;
+
+      cwd = this.uuid;
+      archive = archiver("zip", {
+        zlib: {
+          level: 9,
+        },
+      });
+      output = fs.createWriteStream(self.options.output!);
+      if (self.options.verbose) {
+        console.log("Zipping temp dir to", self.options.output);
+      }
+      archive.append("application/epub+zip", {
+        store: true,
+        name: "mimetype",
+      });
+      archive.directory(cwd + "/META-INF", "META-INF");
+      archive.directory(cwd + "/OEBPS", "OEBPS");
+      archive.pipe(output);
+      archive.on("end", async function () {
+        if (self.options.verbose) {
+          console.log("Done zipping, clearing temp dir...");
+        }
+        console.log("complete zip file");
+        resolve(true); //await fsPromise.rm(cwd, { recursive: true, force: true });
+      });
+      archive.on("error", function (err) {
+        reject(err);
+      });
+      archive.finalize();
+    });
+
     // Thanks to Paul Bradley
     // http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
     // Web Archive URL:
     // http://web.archive.org/web/20150521053611/http://www.bradleymedia.org/gzip-markdown-epub
     // or Gist:
     // https://gist.github.com/cyrilis/8d48eef37fbc108869ac32eb3ef97bca
-    cwd = this.uuid;
-    archive = archiver("zip", {
-      zlib: {
-        level: 9,
-      },
-    });
-    output = fs.createWriteStream(self.options.output!);
-    if (self.options.verbose) {
-      console.log("Zipping temp dir to", self.options.output);
-    }
-    archive.append("application/epub+zip", {
-      store: true,
-      name: "mimetype",
-    });
-    archive.directory(cwd + "/META-INF", "META-INF");
-    archive.directory(cwd + "/OEBPS", "OEBPS");
-    archive.pipe(output);
-    archive.on("end", async function () {
-      if (self.options.verbose) {
-        console.log("Done zipping, clearing temp dir...");
-      }
-      console.log("complete zip file");
-      return; //await fsPromise.rm(cwd, { recursive: true, force: true });
-    });
-    archive.on("error", function (err) {
-      return genDefer.reject(err);
-    });
-    archive.finalize();
-    return await genDefer.promise;
   }
 
   async getBuffer() {

@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -39,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(require("axios"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
-const Q = __importStar(require("q"));
+const q_1 = __importDefault(require("q"));
 const underscore_1 = __importDefault(require("underscore"));
 const uslug_1 = __importDefault(require("uslug"));
 const ejs_1 = __importDefault(require("ejs"));
@@ -57,7 +24,7 @@ const url_1 = __importDefault(require("url"));
 (0, superagent_proxy_1.default)(superagent_1.default);
 class Epub {
     constructor(options, contentUID, output) {
-        this.defer = Q.defer();
+        this.defer = q_1.default.defer();
         this.name = "";
         this.options = options;
         this.id = contentUID;
@@ -424,43 +391,17 @@ class Epub {
         if (self.options.verbose) {
             console.log("Generating Template Files.....");
         }
-        return await this.generateTempFile().then(async function () {
-            if (self.options.verbose) {
-                console.log("Downloading Images...");
-            }
-            return await self.downloadAllImage().fin(async function () {
-                if (self.options.verbose) {
-                    console.log("Making Cover...");
-                }
-                return await self.makeCover().then(async function () {
-                    if (self.options.verbose) {
-                        console.log("Generating Epub Files...");
-                    }
-                    return await self.genEpub().then(async function (result) {
-                        if (self.options.verbose) {
-                            console.log("About to finish...");
-                        }
-                        await self.defer.resolve(result);
-                        if (self.options.verbose) {
-                            return console.log("Done.");
-                        }
-                    }, function (err) {
-                        return self.defer.reject(err);
-                    });
-                }, function (err) {
-                    return self.defer.reject(err);
-                });
-            }
-            // function (err: Error) {
-            //   return self.defer..reject(err);
-            // }
-            );
-        }, function (err) {
-            return self.defer.reject(err);
-        });
+        await this.generateTempFile();
+        console.log("Downloading Images...");
+        await self.downloadAllImage();
+        console.log("Making Cover...");
+        await self.makeCover();
+        console.log("Generating Epub Files...");
+        await self.genEpub();
+        console.log("Complete Gen EPUB");
     }
     async generateTempFile() {
-        var base, generateDefer = Q.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
+        var base, generateDefer = q_1.default.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
         if (!fs_1.default.existsSync(this.options.tempDir)) {
             fs_1.default.mkdirSync(this.options.tempDir);
         }
@@ -541,10 +482,10 @@ class Epub {
             generateDefer.reject(new Error("Custom file to HTML toc template not found."));
             return generateDefer.promise;
         }
-        await Q.all([
-            Q.nfcall(ejs_1.default.renderFile, opfPath, self.options),
-            Q.nfcall(ejs_1.default.renderFile, ncxTocPath, self.options),
-            Q.nfcall(ejs_1.default.renderFile, htmlTocPath, self.options),
+        await q_1.default.all([
+            q_1.default.nfcall(ejs_1.default.renderFile, opfPath, self.options),
+            q_1.default.nfcall(ejs_1.default.renderFile, ncxTocPath, self.options),
+            q_1.default.nfcall(ejs_1.default.renderFile, htmlTocPath, self.options),
         ]).spread(async function (data1, data2, data3) {
             fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/content.opf"), data1);
             fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
@@ -557,137 +498,140 @@ class Epub {
         return generateDefer.promise;
     }
     makeCover() {
-        var coverDefer = Q.defer(), destPath, self = this, userAgent, writeStream;
-        userAgent =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
-        if (this.options.cover) {
-            destPath = path_1.default.resolve(this.uuid, "./OEBPS/cover." + this.options._coverExtension);
-            writeStream = null;
-            if (this.options.cover.slice(0, 4) === "http") {
-                writeStream = superagent_1.default.get(this.options.cover).set({
-                    "User-Agent": userAgent,
+        return new Promise((resolve, reject) => {
+            var destPath, self = this, userAgent, writeStream;
+            userAgent =
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
+            if (this.options.cover) {
+                destPath = path_1.default.resolve(this.uuid, "./OEBPS/cover." + this.options._coverExtension);
+                writeStream = null;
+                if (this.options.cover.slice(0, 4) === "http") {
+                    writeStream = superagent_1.default.get(this.options.cover).set({
+                        "User-Agent": userAgent,
+                    });
+                    writeStream.pipe(fs_1.default.createWriteStream(destPath));
+                }
+                else {
+                    writeStream = fs_1.default.createReadStream(this.options.cover);
+                    writeStream.pipe(fs_1.default.createWriteStream(destPath));
+                }
+                // writeStream.on("end",)
+                writeStream.on("end", function () {
+                    if (self.options.verbose) {
+                        console.log("[Success] cover image downloaded successfully!");
+                    }
+                    resolve(true);
                 });
-                writeStream.pipe(fs_1.default.createWriteStream(destPath));
+                writeStream.on("error", function (err) {
+                    console.error("Error", err);
+                    reject(err);
+                });
             }
             else {
-                writeStream = fs_1.default.createReadStream(this.options.cover);
-                writeStream.pipe(fs_1.default.createWriteStream(destPath));
+                resolve(true);
             }
-            // writeStream.on("end",)
-            writeStream.on("end", function () {
-                if (self.options.verbose) {
-                    console.log("[Success] cover image downloaded successfully!");
-                }
-                return coverDefer.resolve();
-            });
-            writeStream.on("error", function (err) {
-                console.error("Error", err);
-                return coverDefer.reject(err);
-            });
-        }
-        else {
-            coverDefer.resolve();
-        }
-        return coverDefer.promise;
+        });
     }
     downloadImage(options) {
-        //{id, url, mediaType}
-        var auxpath, downloadImageDefer = Q.defer(), filename, requestAction, self = this, userAgent;
-        userAgent =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
-        if (!options.url && typeof options !== "string") {
-            return false;
-        }
-        if (!options.url.match(/^http/i)) {
-            return false;
-        }
-        filename = path_1.default.resolve(self.uuid, "./OEBPS/images/" + options.id + "." + options.extension);
-        if (options.url.indexOf("file://") === 0) {
-            auxpath = options.url.substr(7);
-            fs_extra_1.default.copySync(auxpath, filename);
-            return downloadImageDefer.resolve(options);
-        }
-        else {
-            if (options.url.indexOf("http") === 0) {
-                requestAction = superagent_1.default.get(options.url).set({
-                    "User-Agent": userAgent,
-                });
-                requestAction.pipe(fs_1.default.createWriteStream(filename));
+        return new Promise((resolve, reject) => {
+            var auxpath, filename, requestAction, self = this, userAgent;
+            userAgent =
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
+            if (!options.url && typeof options !== "string") {
+                return false;
+            }
+            if (!options.url.match(/^http/i)) {
+                return false;
+            }
+            filename = path_1.default.resolve(self.uuid, "./OEBPS/images/" + options.id + "." + options.extension);
+            if (options.url.indexOf("file://") === 0) {
+                auxpath = options.url.substr(7);
+                fs_extra_1.default.copySync(auxpath, filename);
+                resolve(options);
             }
             else {
-                requestAction = fs_1.default.createReadStream(path_1.default.resolve(options.dir, options.url));
-                requestAction.pipe(fs_1.default.createWriteStream(filename));
+                if (options.url.indexOf("http") === 0) {
+                    requestAction = superagent_1.default.get(options.url).set({
+                        "User-Agent": userAgent,
+                    });
+                    requestAction.pipe(fs_1.default.createWriteStream(filename));
+                }
+                else {
+                    requestAction = fs_1.default.createReadStream(path_1.default.resolve(options.dir, options.url));
+                    requestAction.pipe(fs_1.default.createWriteStream(filename));
+                }
+                requestAction.on("error", function (err) {
+                    if (self.options.verbose) {
+                        console.error("[Download Error]", "Error while downloading", options.url, err);
+                    }
+                    fs_1.default.unlinkSync(filename);
+                    return reject(err);
+                });
+                requestAction.on("end", function () {
+                    if (self.options.verbose) {
+                        console.log("[Download Success]", options.url);
+                    }
+                    resolve(options);
+                });
             }
-            requestAction.on("error", function (err) {
-                if (self.options.verbose) {
-                    console.error("[Download Error]", "Error while downloading", options.url, err);
-                }
-                fs_1.default.unlinkSync(filename);
-                return downloadImageDefer.reject(err);
-            });
-            requestAction.on("end", function () {
-                if (self.options.verbose) {
-                    console.log("[Download Success]", options.url);
-                }
-                return downloadImageDefer.resolve(options);
-            });
-            return downloadImageDefer.promise;
-        }
+        });
+        //{id, url, mediaType}
     }
-    downloadAllImage() {
-        var deferArray, imgDefer = Q.defer(), self = this;
+    async downloadAllImage() {
+        var deferArray, self = this;
         if (!self.options.images?.length) {
-            imgDefer.resolve();
+            return true;
         }
         else {
             fs_1.default.mkdirSync(path_1.default.resolve(this.uuid, "./OEBPS/images"));
             deferArray = [];
-            underscore_1.default.each(self.options.images, function (image) {
-                return deferArray.push(self.downloadImage(image));
+            underscore_1.default.each(self.options.images, async function (image) {
+                return deferArray.push(await self.downloadImage(image));
             });
-            Q.all(deferArray).fin(function () {
-                return imgDefer.resolve();
+            q_1.default.all(deferArray).fin(function () {
+                return true;
             });
         }
-        return imgDefer.promise;
+        return true;
     }
-    async genEpub() {
-        var archive, cwd, genDefer = Q.defer(), output, self = this;
+    genEpub() {
+        return new Promise((resolve, reject) => {
+            var archive, cwd, genDefer = q_1.default.defer(), output, self = this;
+            cwd = this.uuid;
+            archive = (0, archiver_1.default)("zip", {
+                zlib: {
+                    level: 9,
+                },
+            });
+            output = fs_1.default.createWriteStream(self.options.output);
+            if (self.options.verbose) {
+                console.log("Zipping temp dir to", self.options.output);
+            }
+            archive.append("application/epub+zip", {
+                store: true,
+                name: "mimetype",
+            });
+            archive.directory(cwd + "/META-INF", "META-INF");
+            archive.directory(cwd + "/OEBPS", "OEBPS");
+            archive.pipe(output);
+            archive.on("end", async function () {
+                if (self.options.verbose) {
+                    console.log("Done zipping, clearing temp dir...");
+                }
+                console.log("complete zip file");
+                resolve(true); //await fsPromise.rm(cwd, { recursive: true, force: true });
+            });
+            archive.on("error", function (err) {
+                reject(err);
+            });
+            archive.finalize();
+        });
         // Thanks to Paul Bradley
         // http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
         // Web Archive URL:
         // http://web.archive.org/web/20150521053611/http://www.bradleymedia.org/gzip-markdown-epub
         // or Gist:
         // https://gist.github.com/cyrilis/8d48eef37fbc108869ac32eb3ef97bca
-        cwd = this.uuid;
-        archive = (0, archiver_1.default)("zip", {
-            zlib: {
-                level: 9,
-            },
-        });
-        output = fs_1.default.createWriteStream(self.options.output);
-        if (self.options.verbose) {
-            console.log("Zipping temp dir to", self.options.output);
-        }
-        archive.append("application/epub+zip", {
-            store: true,
-            name: "mimetype",
-        });
-        archive.directory(cwd + "/META-INF", "META-INF");
-        archive.directory(cwd + "/OEBPS", "OEBPS");
-        archive.pipe(output);
-        archive.on("end", async function () {
-            if (self.options.verbose) {
-                console.log("Done zipping, clearing temp dir...");
-            }
-            console.log("complete zip file");
-            return; //await fsPromise.rm(cwd, { recursive: true, force: true });
-        });
-        archive.on("error", function (err) {
-            return genDefer.reject(err);
-        });
-        archive.finalize();
-        return await genDefer.promise;
     }
     async getBuffer() {
         try {

@@ -1,4 +1,3 @@
-import * as Q from "q";
 export interface EpubContent {
     title?: string;
     data: string;
@@ -57,11 +56,11 @@ declare class Epub {
     name: string;
     promise: any;
     constructor(options: Options, contentUID: string, output: string);
-    render(): Promise<any>;
+    render(): Promise<void>;
     generateTempFile(): Promise<unknown>;
-    makeCover(): Q.Promise<unknown>;
-    downloadImage(options: any): false | void | Q.Promise<unknown>;
-    downloadAllImage(): Q.Promise<unknown>;
+    makeCover(): Promise<unknown>;
+    downloadImage(options: any): Promise<unknown>;
+    downloadAllImage(): Promise<boolean>;
     genEpub(): Promise<unknown>;
     getBuffer(): Promise<NonSharedBuffer | undefined>;
 }

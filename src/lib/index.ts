@@ -541,12 +541,6 @@ class Epub {
         (this.options.fonts as string[]) ?? [],
         async function (font: string) {
           var filename: any;
-          if (!fs.existsSync(font)) {
-            generateDefer.reject(
-              new Error("Custom font not found at " + font + ".")
-            );
-            return generateDefer.promise;
-          }
           filename = path.basename(font);
           if (isValidUrl(font)) {
             const response = await axios.get(font);
@@ -556,6 +550,12 @@ class Epub {
             );
             return filename;
           } else {
+            if (!fs.existsSync(font)) {
+              generateDefer.reject(
+                new Error("Custom font not found at " + font + ".")
+              );
+              return generateDefer.promise;
+            }
             fsextra.copySync(
               font,
               path.resolve(self.uuid, "./OEBPS/fonts/" + filename)
@@ -566,7 +566,6 @@ class Epub {
       );
     }
     await _.each(this.options.content, async function (content) {
-      console.log({ content });
       var data;
       data = `${
         self.options.docHeader

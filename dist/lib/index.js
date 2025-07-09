@@ -419,7 +419,7 @@ class Epub {
         if (self.options.verbose) {
             console.log("Generating Template Files.....");
         }
-        return this.generateTempFile().then(function () {
+        return await this.generateTempFile().then(function () {
             if (self.options.verbose) {
                 console.log("Downloading Images...");
             }
@@ -487,7 +487,8 @@ class Epub {
                 }
             });
         }
-        underscore_1.default.each(this.options.content, function (content) {
+        await underscore_1.default.each(this.options.content, async function (content) {
+            console.log({ content });
             var data;
             data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities_1.default.encodeXML(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
       ${self.options.customCss
@@ -536,11 +537,11 @@ class Epub {
             generateDefer.reject(new Error("Custom file to HTML toc template not found."));
             return generateDefer.promise;
         }
-        Q.all([
+        await Q.all([
             Q.nfcall(ejs_1.default.renderFile, opfPath, self.options),
             Q.nfcall(ejs_1.default.renderFile, ncxTocPath, self.options),
             Q.nfcall(ejs_1.default.renderFile, htmlTocPath, self.options),
-        ]).spread(function (data1, data2, data3) {
+        ]).spread(async function (data1, data2, data3) {
             fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/content.opf"), data1);
             fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
             fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);

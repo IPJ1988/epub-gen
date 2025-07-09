@@ -463,7 +463,7 @@ class Epub {
     if (self.options.verbose) {
       console.log("Generating Template Files.....");
     }
-    return this.generateTempFile().then(
+    return await this.generateTempFile().then(
       function () {
         if (self.options.verbose) {
           console.log("Downloading Images...");
@@ -565,7 +565,8 @@ class Epub {
         }
       );
     }
-    _.each(this.options.content, function (content) {
+    await _.each(this.options.content, async function (content) {
+      console.log({ content });
       var data;
       data = `${
         self.options.docHeader
@@ -638,12 +639,12 @@ class Epub {
       );
       return generateDefer.promise;
     }
-    Q.all([
+    await Q.all([
       Q.nfcall(ejs.renderFile, opfPath, self.options),
       Q.nfcall(ejs.renderFile, ncxTocPath, self.options),
       Q.nfcall(ejs.renderFile, htmlTocPath, self.options),
     ]).spread(
-      function (data1: any, data2: any, data3: any) {
+      async function (data1: any, data2: any, data3: any) {
         fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/content.opf"), data1);
         fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
         fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);

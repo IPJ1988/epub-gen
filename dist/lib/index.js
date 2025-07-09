@@ -39,7 +39,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(require("axios"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
-const promises_1 = __importDefault(require("fs/promises"));
 const Q = __importStar(require("q"));
 const underscore_1 = __importDefault(require("underscore"));
 const uslug_1 = __importDefault(require("uslug"));
@@ -682,7 +681,7 @@ class Epub {
                 console.log("Done zipping, clearing temp dir...");
             }
             console.log("complete zip file");
-            return await promises_1.default.rm(cwd, { recursive: true, force: true });
+            return; //await fsPromise.rm(cwd, { recursive: true, force: true });
         });
         archive.on("error", function (err) {
             return genDefer.reject(err);
@@ -692,9 +691,11 @@ class Epub {
     }
     async getBuffer() {
         try {
+            console.log("get getBuffer");
             await this.render();
             const buffer = fs_1.default.readFileSync(this.options.output);
             fs_1.default.unlinkSync(this.options.output);
+            console.log("return buffer", buffer.length);
             return buffer;
         }
         catch (error) {

@@ -813,7 +813,7 @@ class Epub {
         console.log("Done zipping, clearing temp dir...");
       }
       console.log("complete zip file");
-      return await fsPromise.rm(cwd, { recursive: true, force: true });
+      return; //await fsPromise.rm(cwd, { recursive: true, force: true });
     });
     archive.on("error", function (err) {
       return genDefer.reject(err);
@@ -824,9 +824,11 @@ class Epub {
 
   async getBuffer() {
     try {
+      console.log("get getBuffer");
       await this.render();
       const buffer = fs.readFileSync(this.options.output!);
       fs.unlinkSync(this.options.output!);
+      console.log("return buffer", buffer.length);
       return buffer;
     } catch (error) {
       console.error("error get file", error);

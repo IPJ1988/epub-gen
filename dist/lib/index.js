@@ -62,10 +62,10 @@ class Epub {
         this.name = "";
         this.options = options;
         this.id = contentUID;
-        if (this.options.fonts) {
+        if (!this.options.fonts) {
             this.options.fonts = [];
         }
-        if (this.options.content) {
+        if (!this.options.content) {
             this.options.content = [];
         }
         const self = this;
@@ -528,6 +528,8 @@ class Epub {
             ejs_1.default.renderFile(htmlTocPath, self.options),
         ]);
         console.log("writeFileSync", data1);
+        console.log("writeFileSync", data2);
+        console.log("writeFileSync", data3);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/content.opf"), data1);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);

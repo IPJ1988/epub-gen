@@ -82,10 +82,10 @@ class Epub {
   constructor(options: Options, contentUID: string, output: string) {
     this.options = options as Options;
     this.id = contentUID;
-    if (this.options.fonts) {
+    if (!this.options.fonts) {
       this.options.fonts = [];
     }
-    if (this.options.content) {
+    if (!this.options.content) {
       this.options.content = [];
     }
     const self = this;
@@ -617,6 +617,8 @@ class Epub {
       ejs.renderFile(htmlTocPath, self.options),
     ]);
     console.log("writeFileSync", data1);
+    console.log("writeFileSync", data2);
+    console.log("writeFileSync", data3);
     fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/content.opf"), data1);
     fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
     fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);

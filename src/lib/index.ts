@@ -732,10 +732,10 @@ class Epub {
     return new Promise((resolve, reject) => {
       console.log("start zip file", this.uuid);
       zipFolder(this.uuid, (err: Error, buffer: Buffer) => {
-        //self.deleteTmpFile();
         if (err) {
           reject(err);
         }
+        fs.rmdirSync(this.uuid, { recursive: true });
         resolve(buffer);
       });
     });

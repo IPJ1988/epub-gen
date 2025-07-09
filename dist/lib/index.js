@@ -466,6 +466,7 @@ class Epub {
                 }
             });
         }
+        console.log(self.options.fonts);
         //  });
         //   this.options.fonts = await _.map(
         //     (this.options.fonts as string[]) ?? [],
@@ -491,6 +492,8 @@ class Epub {
                     ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>`
                     : "";
             data += `${content.data}</body></html>`;
+            console.log("content.data", data);
+            console.log("content.filePath", content.filePath);
             return fs_1.default.writeFileSync(content.filePath, data);
         });
         // write meta-inf/container.xml
@@ -518,11 +521,13 @@ class Epub {
         if (!fs_1.default.existsSync(htmlTocPath)) {
             new Error("Custom file to HTML toc template not found.");
         }
+        console.log("renderFile EJS");
         const [data1, data2, data3] = await Promise.all([
-            ejs_1.default.renderFile(ncxTocPath, self.options),
+            ejs_1.default.renderFile(opfPath, self.options),
             ejs_1.default.renderFile(ncxTocPath, self.options),
             ejs_1.default.renderFile(htmlTocPath, self.options),
         ]);
+        console.log("writeFileSync", data1);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/content.opf"), data1);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);

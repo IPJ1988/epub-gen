@@ -1,3 +1,4 @@
+import axios from "axios";
 import path from "path";
 import fs from "fs";
 import fsPromise from "fs/promises";
@@ -16,6 +17,7 @@ import mime from "mime";
 import rimraf from "rimraf";
 import { v4 as uuidv4 } from "uuid";
 import url from "url";
+import { error } from "console";
 
 export interface EpubContent {
   title?: string;
@@ -44,7 +46,7 @@ export interface Options extends OptionsInput {
   appendChapterTitles?: boolean;
   date?: Date;
   lang: string;
-  fonts?: string[];
+  fonts?: string[] | Promise<string>[];
   customOpfTemplatePath?: string | undefined;
   customNcxTocTemplatePath?: string | undefined;
   customHtmlTocTemplatePath?: string | undefined;
@@ -506,7 +508,7 @@ class Epub {
     );
   }
 
-  generateTempFile() {
+  async generateTempFile() {
     var base,
       generateDefer = new Q.defer(),
       htmlTocPath,
@@ -534,21 +536,33 @@ class Epub {
     }
     if (self.options.fonts && self.options.fonts.length > 0) {
       fs.mkdirSync(path.resolve(this.uuid, "./OEBPS/fonts"));
-      this.options.fonts = _.map(this.options.fonts ?? [], function (font) {
-        var filename;
-        if (!fs.existsSync(font)) {
-          generateDefer.reject(
-            new Error("Custom font not found at " + font + ".")
-          );
-          return generateDefer.promise;
+      this.options.fonts = await _.map(
+        (this.options.fonts as string[]) ?? [],
+        async function (font: string) {
+          var filename: any;
+          if (!fs.existsSync(font)) {
+            generateDefer.reject(
+              new Error("Custom font not found at " + font + ".")
+            );
+            return generateDefer.promise;
+          }
+          filename = path.basename(font);
+          if (isValidUrl(font)) {
+            const response = await axios.get(font);
+            fsextra.writeFileSync(
+              path.resolve(self.uuid, "./OEBPS/fonts/" + filename),
+              response.data
+            );
+            return filename;
+          } else {
+            fsextra.copySync(
+              font,
+              path.resolve(self.uuid, "./OEBPS/fonts/" + filename)
+            );
+            return filename;
+          }
         }
-        filename = path.basename(font);
-        fsextra.copySync(
-          font,
-          path.resolve(self.uuid, "./OEBPS/fonts/" + filename)
-        );
-        return filename;
-      });
+      );
     }
     _.each(this.options.content, function (content) {
       var data;
@@ -813,4 +827,12 @@ class Epub {
   }
 }
 
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
 export default Epub;

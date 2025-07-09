@@ -25,7 +25,7 @@ export interface Options extends OptionsInput {
     appendChapterTitles?: boolean;
     date?: Date;
     lang: string;
-    fonts?: string[];
+    fonts?: string[] | Promise<string>[];
     customOpfTemplatePath?: string | undefined;
     customNcxTocTemplatePath?: string | undefined;
     customHtmlTocTemplatePath?: string | undefined;
@@ -57,7 +57,7 @@ declare class Epub {
     promise: any;
     constructor(options: Options, contentUID: string, output: string);
     render(): Promise<any>;
-    generateTempFile(): any;
+    generateTempFile(): Promise<any>;
     makeCover(): any;
     downloadImage(options: any): any;
     downloadAllImage(): any;

@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const axios_1 = __importDefault(require("axios"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const promises_1 = __importDefault(require("fs/promises"));
@@ -416,7 +417,7 @@ class Epub {
             return self.defer.reject(err);
         });
     }
-    generateTempFile() {
+    async generateTempFile() {
         var base, generateDefer = new Q.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
         if (!fs_1.default.existsSync(this.options.tempDir)) {
             fs_1.default.mkdirSync(this.options.tempDir);
@@ -431,15 +432,22 @@ class Epub {
         }
         if (self.options.fonts && self.options.fonts.length > 0) {
             fs_1.default.mkdirSync(path_1.default.resolve(this.uuid, "./OEBPS/fonts"));
-            this.options.fonts = underscore_1.default.map(this.options.fonts ?? [], function (font) {
+            this.options.fonts = await underscore_1.default.map(this.options.fonts ?? [], async function (font) {
                 var filename;
                 if (!fs_1.default.existsSync(font)) {
                     generateDefer.reject(new Error("Custom font not found at " + font + "."));
                     return generateDefer.promise;
                 }
                 filename = path_1.default.basename(font);
-                fs_extra_1.default.copySync(font, path_1.default.resolve(self.uuid, "./OEBPS/fonts/" + filename));
-                return filename;
+                if (isValidUrl(font)) {
+                    const response = await axios_1.default.get(font);
+                    fs_extra_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/fonts/" + filename), response.data);
+                    return filename;
+                }
+                else {
+                    fs_extra_1.default.copySync(font, path_1.default.resolve(self.uuid, "./OEBPS/fonts/" + filename));
+                    return filename;
+                }
             });
         }
         underscore_1.default.each(this.options.content, function (content) {
@@ -650,5 +658,14 @@ class Epub {
         }
     }
 }
+const isValidUrl = (url) => {
+    try {
+        new URL(url);
+        return true;
+    }
+    catch (_) {
+        return false;
+    }
+};
 exports.default = Epub;
 //# sourceMappingURL=index.js.map

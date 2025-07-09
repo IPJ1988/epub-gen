@@ -1,6 +1,6 @@
 {
   "name": "epub-gen",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "description": "A library to generate EPUB from HTML",
   "main": "dist/index.js",
   "scripts": {
@@ -58,6 +58,7 @@
     "@types/q": "^1.5.8",
     "@types/rimraf": "^4.0.5",
     "@types/superagent": "^8.1.9",
+    "@types/superagent-proxy": "^3.0.4",
     "@types/underscore": "^1.13.0",
     "@types/uslug": "^1.0.4",
     "@types/uuid": "^10.0.0",

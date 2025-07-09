@@ -2,23 +2,24 @@ import axios from "axios";
 import path from "path";
 import fs from "fs";
 import fsPromise from "fs/promises";
-const Q = require("q");
+import * as Q from "q";
 import _ from "underscore";
 import uslug from "uslug";
 import ejs from "ejs";
 import cheerio from "cheerio";
-const entities = require("entities");
+import entities from "entities";
 import request from "superagent";
-require("superagent-proxy")(request);
+import superagent from "superagent-proxy";
 import fsextra from "fs-extra";
-const removeDiacritics = require("diacritics").remove;
+import removeDiacritics from "diacritics";
+//const removeDiacritics = require("diacritics").remove;
 import archiver from "archiver";
 import mime from "mime";
 import rimraf from "rimraf";
 import { v4 as uuidv4 } from "uuid";
 import url from "url";
 import { error } from "console";
-
+superagent(request);
 export interface EpubContent {
   title?: string;
   data: string;
@@ -71,7 +72,7 @@ interface Image {
 }
 class Epub {
   options: Options;
-  defer = new Q.defer();
+  defer: any = Q.defer();
   id: string;
   uuid: string;
   name: string = "";
@@ -124,7 +125,7 @@ class Epub {
         allowedXhtml11Tags: string[],
         titleSlug: string;
       if (!content.filename) {
-        titleSlug = uslug(removeDiacritics(content.title || "no title"));
+        titleSlug = uslug(removeDiacritics.remove(content.title || "no title"));
         content.href = `${index}_${titleSlug}.xhtml`;
         content.filePath = path.resolve(
           self.uuid,
@@ -496,10 +497,10 @@ class Epub {
                 return self.defer.reject(err);
               }
             );
-          },
-          function (err: Error) {
-            return self.defer.reject(err);
           }
+          // function (err: Error) {
+          //   return self.defer..reject(err);
+          // }
         );
       },
       function (err: Error) {
@@ -510,7 +511,7 @@ class Epub {
 
   async generateTempFile() {
     var base,
-      generateDefer = new Q.defer(),
+      generateDefer = Q.defer(),
       htmlTocPath,
       ncxTocPath,
       opfPath,
@@ -657,7 +658,7 @@ class Epub {
   }
 
   makeCover() {
-    var coverDefer = new Q.defer(),
+    var coverDefer = Q.defer(),
       destPath,
       self = this,
       userAgent,
@@ -699,7 +700,7 @@ class Epub {
   downloadImage(options: any) {
     //{id, url, mediaType}
     var auxpath,
-      downloadImageDefer = new Q.defer(),
+      downloadImageDefer = Q.defer(),
       filename: any,
       requestAction,
       self = this,
@@ -756,7 +757,7 @@ class Epub {
 
   downloadAllImage() {
     var deferArray: any[],
-      imgDefer = new Q.defer(),
+      imgDefer = Q.defer(),
       self = this;
     if (!self.options.images?.length) {
       imgDefer.resolve();
@@ -776,7 +777,7 @@ class Epub {
   genEpub() {
     var archive,
       cwd: string,
-      genDefer = new Q.defer(),
+      genDefer = Q.defer(),
       output,
       self = this;
     // Thanks to Paul Bradley

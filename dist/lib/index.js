@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -7,23 +40,25 @@ const axios_1 = __importDefault(require("axios"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const promises_1 = __importDefault(require("fs/promises"));
-const Q = require("q");
+const Q = __importStar(require("q"));
 const underscore_1 = __importDefault(require("underscore"));
 const uslug_1 = __importDefault(require("uslug"));
 const ejs_1 = __importDefault(require("ejs"));
 const cheerio_1 = __importDefault(require("cheerio"));
-const entities = require("entities");
+const entities_1 = __importDefault(require("entities"));
 const superagent_1 = __importDefault(require("superagent"));
-require("superagent-proxy")(superagent_1.default);
+const superagent_proxy_1 = __importDefault(require("superagent-proxy"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
-const removeDiacritics = require("diacritics").remove;
+const diacritics_1 = __importDefault(require("diacritics"));
+//const removeDiacritics = require("diacritics").remove;
 const archiver_1 = __importDefault(require("archiver"));
 const mime_1 = __importDefault(require("mime"));
 const uuid_1 = require("uuid");
 const url_1 = __importDefault(require("url"));
+(0, superagent_proxy_1.default)(superagent_1.default);
 class Epub {
     constructor(options, contentUID, output) {
-        this.defer = new Q.defer();
+        this.defer = Q.defer();
         this.name = "";
         this.options = options;
         this.id = contentUID;
@@ -64,7 +99,7 @@ class Epub {
         this.options.content = underscore_1.default.map(this.options.content, (content, index) => {
             var $, allowedAttributes, allowedXhtml11Tags, titleSlug;
             if (!content.filename) {
-                titleSlug = (0, uslug_1.default)(removeDiacritics(content.title || "no title"));
+                titleSlug = (0, uslug_1.default)(diacritics_1.default.remove(content.title || "no title"));
                 content.href = `${index}_${titleSlug}.xhtml`;
                 content.filePath = path_1.default.resolve(self.uuid, `./OEBPS/${index}_${titleSlug}.xhtml`);
             }
@@ -410,15 +445,17 @@ class Epub {
                 }, function (err) {
                     return self.defer.reject(err);
                 });
-            }, function (err) {
-                return self.defer.reject(err);
-            });
+            }
+            // function (err: Error) {
+            //   return self.defer..reject(err);
+            // }
+            );
         }, function (err) {
             return self.defer.reject(err);
         });
     }
     async generateTempFile() {
-        var base, generateDefer = new Q.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
+        var base, generateDefer = Q.defer(), htmlTocPath, ncxTocPath, opfPath, self = this;
         if (!fs_1.default.existsSync(this.options.tempDir)) {
             fs_1.default.mkdirSync(this.options.tempDir);
         }
@@ -452,17 +489,17 @@ class Epub {
         }
         underscore_1.default.each(this.options.content, function (content) {
             var data;
-            data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
+            data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities_1.default.encodeXML(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
       ${self.options.customCss
                 ? '<link rel="stylesheet" type="text/css" href="customStyle.css" />\n'
                 : ""}</head>\n<body>`;
             data +=
                 content.title && self.options.appendChapterTitles
-                    ? `<h1>${entities.encodeXML(content.title)}</h1>`
+                    ? `<h1>${entities_1.default.encodeXML(content.title)}</h1>`
                     : "";
             data +=
                 content.title && content.author && content.author.length
-                    ? `<p class='epub-author'>${entities.encodeXML(content.author.join(", "))}</p>`
+                    ? `<p class='epub-author'>${entities_1.default.encodeXML(content.author.join(", "))}</p>`
                     : "";
             data +=
                 content.title && content.url
@@ -515,7 +552,7 @@ class Epub {
         return generateDefer.promise;
     }
     makeCover() {
-        var coverDefer = new Q.defer(), destPath, self = this, userAgent, writeStream;
+        var coverDefer = Q.defer(), destPath, self = this, userAgent, writeStream;
         userAgent =
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
         if (this.options.cover) {
@@ -550,7 +587,7 @@ class Epub {
     }
     downloadImage(options) {
         //{id, url, mediaType}
-        var auxpath, downloadImageDefer = new Q.defer(), filename, requestAction, self = this, userAgent;
+        var auxpath, downloadImageDefer = Q.defer(), filename, requestAction, self = this, userAgent;
         userAgent =
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36";
         if (!options.url && typeof options !== "string") {
@@ -593,7 +630,7 @@ class Epub {
         }
     }
     downloadAllImage() {
-        var deferArray, imgDefer = new Q.defer(), self = this;
+        var deferArray, imgDefer = Q.defer(), self = this;
         if (!self.options.images?.length) {
             imgDefer.resolve();
         }
@@ -610,7 +647,7 @@ class Epub {
         return imgDefer.promise;
     }
     genEpub() {
-        var archive, cwd, genDefer = new Q.defer(), output, self = this;
+        var archive, cwd, genDefer = Q.defer(), output, self = this;
         // Thanks to Paul Bradley
         // http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
         // Web Archive URL:

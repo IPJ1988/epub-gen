@@ -7,7 +7,7 @@ import _, { reject } from "underscore";
 import uslug from "uslug";
 import ejs from "ejs";
 import cheerio from "cheerio";
-import entities from "entities";
+import { encodeXML } from "entities";
 import request from "superagent";
 import superagent from "superagent-proxy";
 import fsextra from "fs-extra";
@@ -30,6 +30,7 @@ export interface EpubContent {
   filePath?: string;
   excludeFromToc?: boolean;
   author?: string;
+  url?: string;
 }
 export interface OptionsInput {
   title: string;
@@ -541,37 +542,40 @@ class Epub {
 
     //   );
     // }
-    await async.eachLimit(this.options.content, 1, async (content) => {
-      var data;
-      data = `${
-        self.options.docHeader
-      }\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities.encodeXML(
-        content.title || ""
-      )}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
+    await async.eachLimit(
+      this.options.content,
+      1,
+      async (content: EpubContent) => {
+        console.log("content.filePath", content);
+        var data;
+        data = `${
+          self.options.docHeader
+        }\n  <head>\n  <meta charset="UTF-8" />\n  <title>${encodeXML(
+          content.title || ""
+        )}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
       ${
         self.options.customCss
           ? '<link rel="stylesheet" type="text/css" href="customStyle.css" />\n'
           : ""
       }</head>\n<body>`;
-      data +=
-        content.title && self.options.appendChapterTitles
-          ? `<h1>${entities.encodeXML(content.title)}</h1>`
-          : "";
-      data +=
-        content.title && content.author && content.author.length
-          ? `<p class='epub-author'>${entities.encodeXML(
-              content.author.join(", ")
-            )}</p>`
-          : "";
-      data +=
-        content.title && content.url
-          ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>`
-          : "";
-      data += `${content.data}</body></html>`;
-      console.log("content.data", data);
-      console.log("content.filePath", content.filePath);
-      return fs.writeFileSync(content.filePath, data);
-    });
+        data +=
+          content.title && self.options.appendChapterTitles
+            ? `<h1>${encodeXML(content.title)}</h1>`
+            : "";
+        data +=
+          content.title && content.author && content.author.length
+            ? `<p class='epub-author'>${encodeXML(content.author)}</p>`
+            : "";
+        data +=
+          content.title && content.url
+            ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>`
+            : "";
+        data += `${content.data}</body></html>`;
+        console.log("content.data", data);
+        console.log("content.filePath", content.filePath);
+        return fs.writeFileSync(content.filePath!, data);
+      }
+    );
     // write meta-inf/container.xml
     fs.mkdirSync(this.uuid + "/META-INF");
     fs.writeFileSync(

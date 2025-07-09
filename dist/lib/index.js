@@ -44,7 +44,7 @@ const underscore_1 = __importDefault(require("underscore"));
 const uslug_1 = __importDefault(require("uslug"));
 const ejs_1 = __importDefault(require("ejs"));
 const cheerio_1 = __importDefault(require("cheerio"));
-const entities_1 = __importDefault(require("entities"));
+const entities_1 = require("entities");
 const superagent_1 = __importDefault(require("superagent"));
 const superagent_proxy_1 = __importDefault(require("superagent-proxy"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
@@ -474,18 +474,19 @@ class Epub {
         //   );
         // }
         await async_1.default.eachLimit(this.options.content, 1, async (content) => {
+            console.log("content.filePath", content);
             var data;
-            data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${entities_1.default.encodeXML(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
+            data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${(0, entities_1.encodeXML)(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
       ${self.options.customCss
                 ? '<link rel="stylesheet" type="text/css" href="customStyle.css" />\n'
                 : ""}</head>\n<body>`;
             data +=
                 content.title && self.options.appendChapterTitles
-                    ? `<h1>${entities_1.default.encodeXML(content.title)}</h1>`
+                    ? `<h1>${(0, entities_1.encodeXML)(content.title)}</h1>`
                     : "";
             data +=
                 content.title && content.author && content.author.length
-                    ? `<p class='epub-author'>${entities_1.default.encodeXML(content.author.join(", "))}</p>`
+                    ? `<p class='epub-author'>${(0, entities_1.encodeXML)(content.author)}</p>`
                     : "";
             data +=
                 content.title && content.url

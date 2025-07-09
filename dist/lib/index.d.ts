@@ -7,6 +7,7 @@ export interface EpubContent {
     filePath?: string;
     excludeFromToc?: boolean;
     author?: string;
+    url?: string;
 }
 export interface OptionsInput {
     title: string;

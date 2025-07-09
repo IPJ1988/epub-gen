@@ -464,15 +464,7 @@ class Epub {
                 }
             });
         }
-        console.log(self.options.fonts);
-        //  });
-        //   this.options.fonts = await _.map(
-        //     (this.options.fonts as string[]) ?? [],
-        //     async function (font: string) {
-        //   );
-        // }
         await async_1.default.eachLimit(self.options.content, 1, async (content) => {
-            console.log("content.filePath", content);
             var data;
             data = `${self.options.docHeader}\n  <head>\n  <meta charset="UTF-8" />\n  <title>${(0, entities_1.encodeXML)(content.title || "")}</title>\n  <link rel="stylesheet" type="text/css" href="style.css" />\n 
       ${self.options.customCss
@@ -491,8 +483,6 @@ class Epub {
                     ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>`
                     : "";
             data += `${content.data}</body></html>`;
-            console.log("content.data", data);
-            console.log("content.filePath", content.filePath);
             return fs_1.default.writeFileSync(content.filePath, data);
         });
         // write meta-inf/container.xml
@@ -520,15 +510,11 @@ class Epub {
         if (!fs_1.default.existsSync(htmlTocPath)) {
             new Error("Custom file to HTML toc template not found.");
         }
-        console.log("renderFile EJS");
         const [data1, data2, data3] = await Promise.all([
             ejs_1.default.renderFile(opfPath, self.options),
             ejs_1.default.renderFile(ncxTocPath, self.options),
             ejs_1.default.renderFile(htmlTocPath, self.options),
         ]);
-        console.log("writeFileSync", data1);
-        console.log("writeFileSync", data2);
-        console.log("writeFileSync", data3);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/content.opf"), data1);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.ncx"), data2);
         fs_1.default.writeFileSync(path_1.default.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3);
@@ -640,38 +626,6 @@ class Epub {
                 }
                 resolve(buffer);
             });
-            // var archive,
-            //   cwd: string,
-            //   output,
-            //   self = this;
-            // cwd = this.uuid;
-            // archive = archiver("zip", {
-            //   zlib: {
-            //     level: 9,
-            //   },
-            // });
-            // output = fs.createWriteStream(self.options.output!);
-            // if (self.options.verbose) {
-            //   console.log("Zipping temp dir to", self.options.output);
-            // }
-            // archive.append("application/epub+zip", {
-            //   store: true,
-            //   name: "mimetype",
-            // });
-            // archive.directory(cwd + "/META-INF", "META-INF");
-            // archive.directory(cwd + "/OEBPS", "OEBPS");
-            // archive.pipe(output);
-            // archive.on("end", async function () {
-            //   if (self.options.verbose) {
-            //     console.log("Done zipping, clearing temp dir...");
-            //   }
-            //   console.log("complete zip file");
-            //   resolve(true); //await fsPromise.rm(cwd, { recursive: true, force: true });
-            // });
-            // archive.on("error", function (err) {
-            //   reject(err);
-            // });
-            // archive.finalize();
         });
         // Thanks to Paul Bradley
         // http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
@@ -680,18 +634,6 @@ class Epub {
         // or Gist:
         // https://gist.github.com/cyrilis/8d48eef37fbc108869ac32eb3ef97bca
     }
-    // archiveEpub(): Promise<Buffer> {
-    //   const self = this;
-    //   return new Promise((resolve, reject) => {
-    //     zipFolder(this.uuid, (err: Error, buffer: Buffer) => {
-    //       //self.deleteTmpFile();
-    //       if (err) {
-    //         reject(err);
-    //       }
-    //       resolve(buffer);
-    //     });
-    //   });
-    // }
     async getBuffer() {
         try {
             console.log("get getBuffer");
